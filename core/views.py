@@ -70,3 +70,170 @@ def get_groups_from_db(request):
         return JsonResponse({'groups': groups}, safe=False)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+    
+
+import logging
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import AllowAny
+from .models import ServerSetting
+class ServerDetailsView(APIView):
+
+    def get(self, request):
+        latest_server = ServerSetting.objects.latest('created_at')  
+        server_details = {
+            "ip_address": latest_server.server_ip,
+            "real_login": latest_server.real_account_login,
+            "password": latest_server.real_account_password
+        }
+        return Response(server_details, status=status.HTTP_200_OK)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ServerSettingsAPIView(APIView):
+    """
+    API View to handle MT5 server settings configuration
+    GET: Retrieve current server settings
+    PUT: Update server settings
+    POST: Update server settings (same as PUT for compatibility)
+    """
+    permission_classes = [AllowAny]  # <-- Replace with IsAdmin after testing
+    http_method_names = ['get', 'put', 'post', 'head', 'options']
+
+    def get(self, request):
+        try:
+            server_setting = ServerSetting.objects.latest('created_at')
+            return Response({
+                "server_ip": server_setting.server_ip,
+                "login_id": server_setting.real_account_login,
+                "server_password": server_setting.real_account_password,
+                "server_name": server_setting.server_name_client
+            }, status=status.HTTP_200_OK)
+        except ServerSetting.DoesNotExist:
+            return Response({
+                "server_ip": "",
+                "login_id": "",
+                "server_password": "",
+                "server_name": ""
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {"error": f"Failed to retrieve server settings: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def put(self, request, *args, **kwargs):
+        try:
+            data = request.data
+            required_fields = ['server_ip', 'login_id', 'server_password', 'server_name']
+            missing_fields = [field for field in required_fields if not data.get(field)]
+
+            if missing_fields:
+                return Response(
+                    {"error": f"Missing required fields: {', '.join(missing_fields)}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            server_setting, created = ServerSetting.objects.get_or_create(
+                defaults={
+                    'server_ip': data['server_ip'],
+                    'real_account_login': data['login_id'],
+                    'real_account_password': data['server_password'],
+                    'server_name_client': data['server_name']
+                }
+            )
+
+            if not created:
+                server_setting.server_ip = data['server_ip']
+                server_setting.real_account_login = data['login_id']
+                server_setting.real_account_password = data['server_password']
+                server_setting.server_name_client = data['server_name']
+                server_setting.save()
+
+            # Force refresh MT5 Manager connection with new credentials
+            try:
+                from adminPanel.mt5.services import reset_manager_instance
+                reset_manager_instance()
+                logger.info("MT5 Manager connection reset after server settings update")
+            except Exception as e:
+                logger.warning(f"Failed to reset MT5 Manager connection: {e}")
+
+            return Response({
+                "message": "Server settings updated successfully",
+                "server_ip": server_setting.server_ip,
+                "login_id": server_setting.real_account_login,
+                "server_name": server_setting.server_name_client
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response(
+                {"error": f"Failed to update server settings: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def post(self, request, *args, **kwargs):
+        """
+        POST method for server settings - same functionality as PUT for compatibility
+        """
+        try:
+            data = request.data
+            required_fields = ['server_ip', 'login_id', 'server_password', 'server_name']
+            missing_fields = [field for field in required_fields if not data.get(field)]
+
+            if missing_fields:
+                return Response(
+                    {"error": f"Missing required fields: {', '.join(missing_fields)}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            server_setting, created = ServerSetting.objects.get_or_create(
+                defaults={
+                    'server_ip': data['server_ip'],
+                    'real_account_login': data['login_id'],
+                    'real_account_password': data['server_password'],
+                    'server_name_client': data['server_name']
+                }
+            )
+
+            if not created:
+                server_setting.server_ip = data['server_ip']
+                server_setting.real_account_login = data['login_id']
+                server_setting.real_account_password = data['server_password']
+                server_setting.server_name_client = data['server_name']
+                server_setting.save()
+
+            # Automated full MT5 database and cache reset after updating credentials
+            try:
+                from adminPanel.mt5.services import reset_manager_instance
+                from adminPanel.mt5.models import MT5GroupConfig
+                from django.core.cache import cache
+                from django.db import transaction
+                reset_manager_instance()
+                # Delete all cached trading groups
+                with transaction.atomic():
+                    MT5GroupConfig.objects.all().delete()
+                # Clear all Django cache
+                cache.clear()
+                # Clear MT5-specific cache keys
+                for key in ['mt5_manager_error','mt5_groups_sync','mt5_connection_status','mt5_leverage_options','mt5_groups_last_sync']:
+                    cache.delete(key)
+                logger.info("Full MT5 database and cache reset after server settings update via POST")
+            except Exception as e:
+                logger.warning(f"Failed to fully reset MT5 database/cache: {e}")
+
+            return Response({
+                "message": "Server settings updated successfully",
+                "server_ip": server_setting.server_ip,
+                "login_id": server_setting.real_account_login,
+                "server_name": server_setting.server_name_client
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response(
+                {"error": f"Failed to update server settings: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
