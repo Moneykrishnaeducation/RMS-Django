@@ -1,0 +1,8 @@
+{
+  "name": "rms-templates",
+  "version": "1.0.0",
+  "description": "Templates for RMS Django project",
+  "scripts": {
+    "dev": "cd .. && PYTHONPATH=. python manage.py runserver"
+  }
+}
