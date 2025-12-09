@@ -52,12 +52,60 @@ def get_open_positions(request, login_id):
 @csrf_exempt
 @require_http_methods(["GET"])
 def list_accounts(request):
-    """List all accounts."""
+    """List all accounts and store in DB."""
     try:
         svc = MT5Service()
         accounts = svc.list_accounts_by_groups()
-        return JsonResponse({'accounts': accounts}, safe=False)
+        print(f"Fetched {len(accounts)} accounts from MT5")
+        # Store accounts in database
+        from .models import Accounts
+        from datetime import datetime
+        stored_count = 0
+        for acc in accounts:
+            try:
+                print(f"Processing account: {acc}")
+                # Convert string dates to datetime if present
+                last_access = None
+                registration = None
+                if acc.get('last_access'):
+                    try:
+                        last_access = datetime.fromisoformat(acc['last_access'].replace('Z', '+00:00'))
+                    except Exception as e:
+                        print(f"Error parsing last_access: {e}")
+                        last_access = None
+                if acc.get('registration'):
+                    try:
+                        registration = datetime.fromisoformat(acc['registration'].replace('Z', '+00:00'))
+                    except Exception as e:
+                        print(f"Error parsing registration: {e}")
+                        registration = None
+
+                account_obj, created = Accounts.objects.update_or_create(
+                    login=acc['login'],
+                    defaults={
+                        'name': acc.get('name'),
+                        'email': acc.get('email'),
+                        'group': acc.get('group'),
+                        'leverage': acc.get('leverage'),
+                        'balance': acc.get('balance', 0),
+                        'equity': acc.get('equity', 0),
+                        'profit': acc.get('profit', 0),
+                        'margin': acc.get('margin', 0),
+                        'margin_free': acc.get('margin_free', 0),
+                        'margin_level': acc.get('margin_level', 0),
+                        'last_access': last_access,
+                        'registration': registration,
+                    }
+                )
+                stored_count += 1
+                print(f"Stored account {acc['login']}: created={created}")
+            except Exception as e:
+                print(f"Error storing account {acc.get('login')}: {e}")
+                continue
+        print(f"Successfully stored {stored_count} accounts in database")
+        return JsonResponse({'accounts': accounts, 'stored': True, 'stored_count': stored_count}, safe=False)
     except Exception as e:
+        print(f"Error in list_accounts: {e}")
         return JsonResponse({'error': str(e)}, status=500)
 
 @csrf_exempt
@@ -71,6 +119,26 @@ def get_groups_from_db(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
     
+    
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_all_account_details(request):
+    """Get detailed account information for all accounts."""
+    try:
+        svc = MT5Service()
+        from .models import Accounts
+        # Get all login IDs from database
+        login_ids = Accounts.objects.values_list('login', flat=True)
+        all_details = []
+        for login_id in login_ids:
+            details = svc.get_account_details(login_id)
+            if details:
+                all_details.append(details)
+        return JsonResponse({'accounts': all_details}, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
 
 import logging
 from django.utils.decorators import method_decorator
