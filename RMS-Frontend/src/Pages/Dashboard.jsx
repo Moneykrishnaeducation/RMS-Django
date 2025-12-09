@@ -1,6 +1,40 @@
-import React, { useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import axios from "axios";
 
-const Dashboard = ({ data }) => {
+const API_BASE = 'http://127.0.0.1:8000/api'; // Django backend API base
+
+const Dashboard = () => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAccounts = async () => {
+      setLoading(true);
+      try {
+        const response = await axios.get(`${API_BASE}/accounts/db`);
+        if (response.data && response.data.accounts) {
+          if (Array.isArray(response.data.accounts)) {
+            setData(response.data.accounts);
+          } else if (typeof response.data.accounts === 'object') {
+            setData(Object.values(response.data.accounts));
+          } else {
+            console.error('accounts is not array or object');
+            setData([]);
+          }
+        } else {
+          console.error('API returned invalid data');
+          setData([]);
+        }
+      } catch (error) {
+        console.error('Error fetching accounts:', error);
+        setData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAccounts();
+  }, []);
 
   const isDemo = (g) => g?.toLowerCase().startsWith("demo");
   const isReal = (g) => !isDemo(g);
@@ -59,6 +93,17 @@ const Dashboard = ({ data }) => {
     }
   ];
 
+  if (loading) {
+    return (
+      <div className="p-6 bg-gray-100 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg">Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
       <h2 className="text-3xl font-extrabold mb-8 text-gray-900">
@@ -66,7 +111,7 @@ const Dashboard = ({ data }) => {
       </h2>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-10">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4 mb-10">
         {cardStats.map((item, i) => (
           <div key={i} className="bg-gradient-to-br from-indigo-700 to-purple-700 rounded-xl text-white p-4 shadow-lg">
             <p className="text-xs opacity-70">{item.label}</p>
