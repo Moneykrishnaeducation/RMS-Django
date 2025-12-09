@@ -1,13 +1,47 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
+import axios from "axios";
 
-const FilterSearch = ({ data }) => {
+const API_BASE = 'http://127.0.0.1:8000/api'; // Django backend API base
+
+const FilterSearch = () => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [accountType, setAccountType] = useState("Real Account");
   const [loginFilter, setLoginFilter] = useState("All");
   const [nameFilter, setNameFilter] = useState("All");
   const [groupFilter, setGroupFilter] = useState("All");
 
-  const isDemo = (group) => group?.toLowerCase().startsWith("demo");
-  const isReal = (group) => !isDemo(group);
+  useEffect(() => {
+    const fetchAccounts = async () => {
+      setLoading(true);
+      try {
+        const response = await axios.get(`${API_BASE}/accounts/db`);
+        if (response.data && response.data.accounts) {
+          if (Array.isArray(response.data.accounts)) {
+            setData(response.data.accounts);
+          } else if (typeof response.data.accounts === 'object') {
+            setData(Object.values(response.data.accounts));
+          } else {
+            console.error('accounts is not array or object');
+            setData([]);
+          }
+        } else {
+          console.error('API returned invalid data');
+          setData([]);
+        }
+      } catch (error) {
+        console.error('Error fetching accounts:', error);
+        setData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAccounts();
+  }, []);
+
+  const isDemo = useCallback((group) => group?.toLowerCase().startsWith("demo"), []);
+  const isReal = useCallback((group) => !isDemo(group), [isDemo]);
 
   const totalReal = data.filter((row) => isReal(row.group)).length;
   const totalDemo = data.filter((row) => isDemo(row.group)).length;
@@ -22,7 +56,18 @@ const FilterSearch = ({ data }) => {
     if (groupFilter !== "All") rows = rows.filter(r => r.group === groupFilter);
 
     return rows;
-  }, [data, accountType, loginFilter, nameFilter, groupFilter]);
+  }, [data, accountType, loginFilter, nameFilter, groupFilter, isReal]);
+
+  if (loading) {
+    return (
+      <div className="p-6 bg-gray-100 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg">Loading filter search data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen">

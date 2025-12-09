@@ -7,7 +7,7 @@ const Navbar = () => {
       <Link to="/" className="block py-2 px-4 hover:bg-gray-700 rounded mb-2">Home</Link>
       <Link to="/account-details" className="block py-2 px-4 hover:bg-gray-700 rounded mb-2">Account Details</Link>
       <Link to="/dashboard" className="block py-2 px-4 hover:bg-gray-700 rounded mb-2">Dashboard</Link>
-      <Link to="/filter-search" className="block py-2 px-4 hover:bg-gray-700 rounded">Filter Search</Link>
+      <Link to="/filtersearch" className="block py-2 px-4 hover:bg-gray-700 rounded">Filter Search</Link>
     </nav>
   );
 };

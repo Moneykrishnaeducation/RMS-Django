@@ -13,7 +13,7 @@ const AppRoutes = () => {
           <Route index element={<Dashboard />} />
           <Route path="account-details" element={<AccountDetails />} />
           <Route path="dashboard" element={<Dashboard />} />
-          <Route path="filter-search" element={<FilterSearch />} />
+          <Route path="filtersearch" element={<FilterSearch />} />
         </Route>
       </Routes>
     </Router>
