@@ -120,6 +120,17 @@ def get_groups_from_db(request):
         return JsonResponse({'error': str(e)}, status=500)
     
     
+    
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_accounts_from_db(request):
+    """Get list of accounts from database."""
+    try:
+        from .models import Accounts
+        accounts = list(Accounts.objects.values())
+        return JsonResponse({'accounts': accounts}, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 @csrf_exempt
 @require_http_methods(["GET"])
