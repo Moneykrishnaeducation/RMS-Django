@@ -138,7 +138,7 @@ def get_all_account_details(request):
         return JsonResponse({'accounts': all_details}, safe=False)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
-
+ 
 
 import logging
 from django.utils.decorators import method_decorator

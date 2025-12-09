@@ -10,6 +10,7 @@ urlpatterns = [
     path('accounts/<int:login_id>/', views.get_account_details, name='get_account_details'),# get the account details from the Mt5
     path('positions/<int:login_id>/', views.get_open_positions, name='get_open_positions'),# get the open position details from the Mt5
     # Server settings endpoints
+    
     path('server/settings/', views.ServerSettingsAPIView.as_view(), name='server_settings'),
     path('server/details/', views.ServerDetailsView.as_view(), name='server_details'),
 ]
