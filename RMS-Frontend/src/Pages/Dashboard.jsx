@@ -16,6 +16,7 @@ const RMSDashboard = ({ data }) => {
 
   const topProfitReal = [...data]
     .filter(row => isReal(row.group))
+    
     .sort((a, b) => b.profit - a.profit)[0];
 
   const topProfitDemo = [...data]
