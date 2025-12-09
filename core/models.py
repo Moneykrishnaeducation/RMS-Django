@@ -22,11 +22,11 @@ class Accounts(models.Model):
     margin_level = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     last_access = models.DateTimeField(blank=True, null=True)
     registration = models.DateTimeField(blank=True, null=True)
-
+ 
     class Meta:
         db_table = 'Accounts'
         app_label = 'core'
-
+ 
 class ServerSetting(models.Model):
     server_ip = models.CharField(max_length=100, verbose_name='Server IP Address with Port')
     real_account_login = models.CharField(max_length=100, verbose_name='Real Account Login ID')
