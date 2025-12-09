@@ -11,9 +11,11 @@ const AppRoutes = () => {
       <Routes>
         <Route path="/" element={<MainPage />}>
           <Route index element={<Dashboard />} />
-          <Route path="account-details" element={<AccountDetails />} />
+          {/* <Route path="account-details" element={<AccountDetails />} /> */}
+          <Route path="accounts" element={<Accounts />}/>
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="filtersearch" element={<FilterSearch />} />
+          <Route path="accounts" element={<Accounts />} />
         </Route>
       </Routes>
     </Router>
