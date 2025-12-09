@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
-import "bootstrap/dist/css/bootstrap.min.css";
-import "./cards.css"; // custom gradient card styling
+// import "bootstrap/dist/css/bootstrap.min.css";
+// import "./cards.css"; // custom gradient card styling
 
 const RMSDashboard = ({ data }) => {
 
