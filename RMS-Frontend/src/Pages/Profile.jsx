@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const API_BASE = 'http://127.0.0.1:8000/api'; // Assuming the Django backend API base
 
-const AccountDetails = () => {
+const Profile = () => {
   const [loginId, setLoginId] = useState('');
   const [result, setResult] = useState(null);
   const [isError, setIsError] = useState(false);
@@ -120,4 +120,4 @@ const AccountDetails = () => {
   );
 };
 
-export default AccountDetails;
+export default Profile;

@@ -27,8 +27,7 @@ const Table = ({ columns, data }) => {
     </table>
   );
 };
-
-export default function Accounts() {
+const Accounts =() => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -104,3 +103,5 @@ export default function Accounts() {
     </div>
   );
 }
+
+export default Accounts;
