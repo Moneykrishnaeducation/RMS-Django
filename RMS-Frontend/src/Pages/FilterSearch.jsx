@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import "bootstrap/dist/css/bootstrap.min.css";
+// import "bootstrap/dist/css/bootstrap.min.css";
 
 
 const AccountsDashboard = ({ data }) => {
