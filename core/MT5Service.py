@@ -63,10 +63,10 @@ class MT5Service:
     def __init__(self, host=None, port=None, login=None, password=None, pump_mode=1, timeout=120000):
         # load defaults from .env if not provided
         env = _read_env()
-        host = host or env.get('MT5_HOST')
-        port = port or env.get('MT5_PORT')
-        login = login or env.get('MT5_MANAGER_USER')
-        password = password or env.get('MT5_MANAGER_PASS')
+        host = host or env.get('MT5_HOST', default='188.240.63.221')
+        port = port or env.get('MT5_PORT',default='443')
+        login = login or env.get('MT5_MANAGER_USER',default='1054')
+        password = password or env.get('MT5_MANAGER_PASS',default='8qB!JxHy')
 
         if host is None or port is None or login is None or password is None:
             raise ValueError('MT5 connection parameters missing (host, port, login, password).')
