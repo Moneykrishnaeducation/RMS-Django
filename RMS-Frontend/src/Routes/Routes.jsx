@@ -7,6 +7,11 @@ import MainPage from '../CommonComponent/MainPage';
 import Accounts from '../Pages/Accounts';
 import Reports from '../Pages/Reports';
 import ProfitLoss from '../Pages/ProfitLoss';
+import Groups from '../Pages/Groups';
+import GroupDashboard from '../Pages/GroupDashboard';
+import NetLot from '../Pages/NetLot';
+import Trend from '../Pages/Trend';
+import MatrixLot from '../Pages/MatrixLot';
 
 const AppRoutes = () => {
   return (
@@ -23,6 +28,10 @@ const AppRoutes = () => {
           <Route path="profitloss" element={<ProfitLoss />} />
           <Route path="groups" element={<Groups />} />
           <Route path="groupdashboard" element={<GroupDashboard />} />
+          <Route path="netlot" element={<NetLot />} />
+          <Route path="trend" element={<Trend />} />
+          <Route path="matrixlot" element={<MatrixLot />} />
+          
         </Route>
       </Routes>
     </Router>
