@@ -11,7 +11,8 @@ urlpatterns = [
     path('positions/<int:login_id>/', views.get_open_positions, name='get_open_positions'),# get the open position details from the Mt5
     path('positions/sync_all/', views.sync_all_open_positions, name='sync_all_open_positions'),
     path('api/positions/open/', views.get_open_positions_from_db, name='get_open_positions'),
-   
+    path('lots/all/', views.get_all_lots, name='get_all_lots'),# getall the login user's lot
+    path('lots/<int:login_id>/', views.get_all_lots_by_login, name='get_all_lots_by_login'),
     # Server settings endpoints
     path('sync/mt5/', views.sync_mt5_data, name='sync_mt5_data'),# Automate sync of all MT5 data to DB
 

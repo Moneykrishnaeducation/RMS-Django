@@ -17,6 +17,8 @@ import threading
 from .models import Accounts, OpenPositions
 from datetime import datetime
 from django.utils import timezone
+from .models import Accounts, OpenPositions
+from django.db.models import Sum
 
 def normalize_date(date_value):
     """Ensure date_value is a valid datetime object."""
@@ -35,6 +37,31 @@ def normalize_date(date_value):
         return date_value
     else:
         return timezone.now()
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_lots_for_account(request, login_id):
+    """Fetch and calculate the total 'lot' (volume) for each symbol for a given login ID."""
+    try:
+        # Get the account object for the given login_id
+        account = Accounts.objects.get(login=login_id)
+
+        # Get all open positions for the account
+        positions = OpenPositions.objects.filter(login=account)
+
+        # Group the positions by symbol and calculate the total volume (lot) for each symbol
+        lot_data = positions.values('symbol').annotate(total_volume=Sum('volume')).order_by('symbol')
+
+        # Prepare the response data
+        result = [{"symbol": item['symbol'], "lot": item['total_volume']} for item in lot_data]
+
+        # Return the data as a JSON response
+        return JsonResponse({"data": result}, safe=False)
+
+    except Accounts.DoesNotExist:
+        return JsonResponse({"error": "Account not found"}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
 def sync_positions_for_account(account):
     """Fetch and store positions for a single account."""
@@ -84,6 +111,67 @@ def sync_positions_for_account(account):
 
     except Exception as e:
         print(f"Error syncing account {login_id}: {e}")
+
+@csrf_exempt  # Only use if necessary, consider removing for production
+@require_http_methods(["GET"])
+def get_all_lots(request):
+    """Fetch and calculate the total 'lot' (volume) for each symbol for all accounts."""
+    try:
+        # Fetch and aggregate all positions for all accounts in one query
+        lot_data = (
+            OpenPositions.objects
+            .values('login__login', 'symbol')  # Group by account login and symbol
+            .annotate(total_volume=Sum('volume'))  # Sum the volume for each group
+            .order_by('login__login', 'symbol')  # Order results by login and symbol
+        )
+
+        # Prepare the response data
+        all_lots = [
+            {
+                "login_id": item['login__login'],  # Use the login_id
+                "symbol": item['symbol'],
+                "lot": item['total_volume']
+            }
+            for item in lot_data
+        ]
+
+        # Return the data as a JSON response
+        return JsonResponse({"data": all_lots}, safe=False)
+
+    except Exception as e:
+        # You can log the exception here for debugging purposes
+        return JsonResponse({"error": str(e)}, status=500)
+
+@csrf_exempt  # Only use if necessary, consider removing for production
+@require_http_methods(["GET"])
+def get_all_lots_by_login(request, login_id):
+    """Fetch and calculate the total 'lot' (volume) for each symbol for a specific account."""
+    try:
+        # Fetch and aggregate positions for the given login_id
+        lot_data = (
+            OpenPositions.objects
+            .filter(login__login=login_id)  # Filter by the login_id
+            .values('symbol')  # Group by symbol
+            .annotate(total_volume=Sum('volume'))  # Sum the volume for each symbol
+            .order_by('symbol')  # Order results by symbol
+        )
+
+        # Prepare the response data
+        all_lots = [
+            {
+                "login_id": login_id,  # The login_id provided in the URL
+                "symbol": item['symbol'],
+                "lot": item['total_volume']
+            }
+            for item in lot_data
+        ]
+
+        # Return the data as a JSON response
+        return JsonResponse({"data": all_lots}, safe=False)
+
+    except Exception as e:
+        # Log the exception for debugging purposes (optional)
+        return JsonResponse({"error": str(e)}, status=500)
 
 @csrf_exempt
 @require_http_methods(["GET"])
