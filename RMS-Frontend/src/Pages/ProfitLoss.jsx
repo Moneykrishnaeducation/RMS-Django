@@ -18,6 +18,10 @@ const ProfitLoss = () => {
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
 
+   // Single pagination for both table and chart
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 10;
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -28,7 +32,6 @@ const ProfitLoss = () => {
         console.log("API Response:", res.data);
 
         // Adjust this according to your API response structure
-        // Example: res.data.accounts or res.data.results or res.data directly
         let accounts = [];
         if (Array.isArray(res.data)) {
           accounts = res.data;
@@ -65,6 +68,14 @@ const ProfitLoss = () => {
     return data;
   }, [data, filter]);
 
+  // Pagination
+  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    return filteredData.slice(start, end);
+  }, [filteredData, currentPage]);
+
   if (loading) return <p className="p-6">Loading...</p>;
   if (!data.length) return <p className="p-6">No accounts found.</p>;
 
@@ -84,7 +95,10 @@ const ProfitLoss = () => {
                 ? "bg-blue-600 text-white shadow-md"
                 : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"
             }`}
-            onClick={() => setFilter(type)}
+            onClick={() => {
+              setFilter(type);
+              setCurrentPage(1); // reset page on filter change
+            }}
           >
             {type === "all"
               ? "All Accounts"
@@ -105,9 +119,7 @@ const ProfitLoss = () => {
           <h3 className="text-gray-500 font-medium">Min Profit</h3>
           <p className="text-2xl font-bold text-red-500">
             {filteredData.length
-              ? Math.min(...filteredData.map((d) => Number(d.profit) || 0)).toFixed(
-                  2
-                )
+              ? Math.min(...filteredData.map((d) => Number(d.profit) || 0)).toFixed(2)
               : "0.00"}
           </p>
         </div>
@@ -115,9 +127,7 @@ const ProfitLoss = () => {
           <h3 className="text-gray-500 font-medium">Max Profit</h3>
           <p className="text-2xl font-bold text-green-500">
             {filteredData.length
-              ? Math.max(...filteredData.map((d) => Number(d.profit) || 0)).toFixed(
-                  2
-                )
+              ? Math.max(...filteredData.map((d) => Number(d.profit) || 0)).toFixed(2)
               : "0.00"}
           </p>
         </div>
@@ -147,13 +157,13 @@ const ProfitLoss = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredData.map((row, idx) => (
+            {paginatedData.map((row, idx) => (
               <tr key={idx} className="hover:bg-gray-50 transition-colors">
                 <td className="p-2 border">{row.login || "-"}</td>
                 <td className="p-2 border">{row.name || "-"}</td>
                 <td className="p-2 border">{row.group || "-"}</td>
                 <td
-                  className={`p-2 border ${
+                  className={`p-2 border 
                     Number(row.profit) < 0 ? "text-red-500" : "text-green-500"
                   }`}
                 >
@@ -165,6 +175,25 @@ const ProfitLoss = () => {
             ))}
           </tbody>
         </table>
+
+        {/* Pagination */}
+        <div className="flex justify-center items-center gap-2 mt-4">
+          <button
+            className="px-3 py-1 border rounded disabled:opacity-50"
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+          >
+            Prev
+          </button>
+        
+          <button
+            className="px-3 py-1 border rounded disabled:opacity-50"
+            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </button>
+        </div>
       </div>
 
       {/* P/L Distribution Chart */}
