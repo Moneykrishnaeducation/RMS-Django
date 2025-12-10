@@ -29,14 +29,108 @@ def normalize_date(date_value):
             # If the date ends with 'Z', replace it with '+00:00' (for UTC time)
             if date_value.endswith('Z'):
                 date_value = date_value[:-1] + '+00:00'  # Convert 'Z' to UTC offset
+            # Attempt to parse the string as a datetime
             return datetime.fromisoformat(date_value)
         except Exception as e:
             print(f"Error parsing date {date_value}: {e}. Returning current time.")
             return timezone.now()
     elif isinstance(date_value, datetime):
+        # If it's already a datetime object, return it
         return date_value
     else:
+        # If it's any other type, return the current time
+        print(f"Unexpected date type: {type(date_value)}. Returning current time.")
         return timezone.now()
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_open_positions_from_db(request, login_id=None):
+    """Get open positions from DB after updating with fresh MT5 data, optionally filtered by login_id."""
+    try:
+        svc = MT5Service()
+        from .models import Accounts, OpenPositions
+        from django.utils import timezone
+        if login_id:
+            # Update DB for specific login_id
+            positions = svc.get_open_positions(login_id)
+            account = Accounts.objects.get(login=login_id)
+            existing_positions = set(OpenPositions.objects.filter(login=account).values_list('position_id', flat=True))
+            fetched_positions = set()
+            for pos in positions:
+                pos_id = pos.get('id')
+                if pos_id is None:
+                    continue
+                # Skip if required fields are None
+                symbol = pos.get('symbol')
+                volume = pos.get('volume')
+                price = pos.get('price')
+                position_type = pos.get('type')
+                if symbol is None or volume is None or price is None or position_type is None:
+                    continue
+                fetched_positions.add(pos_id)
+                OpenPositions.objects.update_or_create(
+                    login=account,
+                    position_id=pos_id,
+                    defaults={
+                        'symbol': symbol,
+                        'volume': volume,
+                        'price': price,
+                        'profit': pos.get('profit') or 0,
+                        'position_type': position_type,
+                        'date_created': pos.get('date') or timezone.now(),
+                    }
+                )
+            # Delete positions that are no longer open
+            to_delete = existing_positions - fetched_positions
+            OpenPositions.objects.filter(login=account, position_id__in=to_delete).delete()
+            # Retrieve updated positions from DB
+            positions = OpenPositions.objects.filter(login__login=login_id).values(
+                'position_id', 'symbol', 'volume', 'price', 'profit', 'position_type', 'date_created', 'last_updated'
+            )
+        else:
+            # Update DB for all login_ids
+            login_ids = Accounts.objects.values_list('login', flat=True)
+            for lid in login_ids:
+                positions = svc.get_open_positions(lid)
+                account = Accounts.objects.get(login=lid)
+                existing_positions = set(OpenPositions.objects.filter(login=account).values_list('position_id', flat=True))
+                fetched_positions = set()
+                for pos in positions:
+                    pos_id = pos.get('id')
+                    if pos_id is None:
+                        continue
+                    # Skip if required fields are None
+                    symbol = pos.get('symbol')
+                    volume = pos.get('volume')
+                    price = pos.get('price')
+                    position_type = pos.get('type')
+                    if symbol is None or volume is None or price is None or position_type is None:
+                        continue
+                    fetched_positions.add(pos_id)
+                    OpenPositions.objects.update_or_create(
+                        login=account,
+                        position_id=pos_id,
+                        defaults={
+                            'symbol': symbol,
+                            'volume': volume,
+                            'price': price,
+                            'profit': pos.get('profit') or 0,
+                            'position_type': position_type,
+                            'date_created': pos.get('date') or timezone.now(),
+                        }
+                    )
+                # Delete positions that are no longer open
+                to_delete = existing_positions - fetched_positions
+                OpenPositions.objects.filter(login=account, position_id__in=to_delete).delete()
+            # Retrieve all updated positions from DB
+            positions = OpenPositions.objects.all().values(
+                'login__login', 'position_id', 'symbol', 'volume', 'price', 'profit', 'position_type', 'date_created', 'last_updated'
+            )
+        return JsonResponse({'positions': list(positions)}, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+
 
 @csrf_exempt
 @require_http_methods(["GET"])
@@ -171,6 +265,61 @@ def get_all_lots_by_login(request, login_id):
 
     except Exception as e:
         # Log the exception for debugging purposes (optional)
+        return JsonResponse({"error": str(e)}, status=500)
+
+@csrf_exempt  # Use only if necessary; avoid in production without proper security
+@require_http_methods(["GET"])
+def get_user_profile(request, login_id):
+    """Fetch user profile data including account details and open positions."""
+    try:
+        # Fetch account details based on login_id
+        account = get_object_or_404(Accounts, login=login_id)
+
+        # Fetch open positions associated with this account
+        open_positions = OpenPositions.objects.filter(login=account)
+
+        # Serialize account data
+        account_data = {
+            "login": account.login,
+            "name": account.name,
+            "email": account.email,
+            "group": account.group,
+            "leverage": account.leverage,
+            "balance": str(account.balance),
+            "equity": str(account.equity),
+            "profit": str(account.profit),
+            "margin": str(account.margin),
+            "margin_free": str(account.margin_free),
+            "margin_level": str(account.margin_level),
+            "last_access": account.last_access,
+            "registration": account.registration
+        }
+
+        # Serialize open positions data
+        open_positions_data = [
+            {
+                "position_id": pos.position_id,
+                "symbol": pos.symbol,
+                "volume": str(pos.volume),
+                "price": str(pos.price),
+                "profit": str(pos.profit),
+                "position_type": pos.position_type,
+                "date_created": pos.date_created,
+                "last_updated": pos.last_updated
+            }
+            for pos in open_positions
+        ]
+
+        # Combine account data and open positions data
+        response_data = {
+            "account": account_data,
+            "open_positions": open_positions_data
+        }
+
+        # Return as JSON response
+        return JsonResponse(response_data, safe=False)
+
+    except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
 @csrf_exempt
@@ -357,93 +506,7 @@ def fetch_all_open_positions(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
-@csrf_exempt
-@require_http_methods(["GET"])
-def get_open_positions_from_db(request, login_id=None):
-    """Get open positions from DB after updating with fresh MT5 data, optionally filtered by login_id."""
-    try:
-        svc = MT5Service()
-        from .models import Accounts, OpenPositions
-        from django.utils import timezone
-        if login_id:
-            # Update DB for specific login_id
-            positions = svc.get_open_positions(login_id)
-            account = Accounts.objects.get(login=login_id)
-            existing_positions = set(OpenPositions.objects.filter(login=account).values_list('position_id', flat=True))
-            fetched_positions = set()
-            for pos in positions:
-                pos_id = pos.get('id')
-                if pos_id is None:
-                    continue
-                # Skip if required fields are None
-                symbol = pos.get('symbol')
-                volume = pos.get('volume')
-                price = pos.get('price')
-                position_type = pos.get('type')
-                if symbol is None or volume is None or price is None or position_type is None:
-                    continue
-                fetched_positions.add(pos_id)
-                OpenPositions.objects.update_or_create(
-                    login=account,
-                    position_id=pos_id,
-                    defaults={
-                        'symbol': symbol,
-                        'volume': volume,
-                        'price': price,
-                        'profit': pos.get('profit') or 0,
-                        'position_type': position_type,
-                        'date_created': pos.get('date') or timezone.now(),
-                    }
-                )
-            # Delete positions that are no longer open
-            to_delete = existing_positions - fetched_positions
-            OpenPositions.objects.filter(login=account, position_id__in=to_delete).delete()
-            # Retrieve updated positions from DB
-            positions = OpenPositions.objects.filter(login__login=login_id).values(
-                'position_id', 'symbol', 'volume', 'price', 'profit', 'position_type', 'date_created', 'last_updated'
-            )
-        else:
-            # Update DB for all login_ids
-            login_ids = Accounts.objects.values_list('login', flat=True)
-            for lid in login_ids:
-                positions = svc.get_open_positions(lid)
-                account = Accounts.objects.get(login=lid)
-                existing_positions = set(OpenPositions.objects.filter(login=account).values_list('position_id', flat=True))
-                fetched_positions = set()
-                for pos in positions:
-                    pos_id = pos.get('id')
-                    if pos_id is None:
-                        continue
-                    # Skip if required fields are None
-                    symbol = pos.get('symbol')
-                    volume = pos.get('volume')
-                    price = pos.get('price')
-                    position_type = pos.get('type')
-                    if symbol is None or volume is None or price is None or position_type is None:
-                        continue
-                    fetched_positions.add(pos_id)
-                    OpenPositions.objects.update_or_create(
-                        login=account,
-                        position_id=pos_id,
-                        defaults={
-                            'symbol': symbol,
-                            'volume': volume,
-                            'price': price,
-                            'profit': pos.get('profit') or 0,
-                            'position_type': position_type,
-                            'date_created': pos.get('date') or timezone.now(),
-                        }
-                    )
-                # Delete positions that are no longer open
-                to_delete = existing_positions - fetched_positions
-                OpenPositions.objects.filter(login=account, position_id__in=to_delete).delete()
-            # Retrieve all updated positions from DB
-            positions = OpenPositions.objects.all().values(
-                'login__login', 'position_id', 'symbol', 'volume', 'price', 'profit', 'position_type', 'date_created', 'last_updated'
-            )
-        return JsonResponse({'positions': list(positions)}, safe=False)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+
 
 @csrf_exempt
 @require_http_methods(["GET"])
