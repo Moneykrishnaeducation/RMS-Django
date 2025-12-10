@@ -13,6 +13,7 @@ import NetLot from '../Pages/NetLot';
 import Trend from '../Pages/Trend';
 import MatrixLot from '../Pages/MatrixLot';
 import OpenPosition from '../Pages/OpenPosition';
+import XAUUSD from '../Pages/Xauusd';
 
 const AppRoutes = () => {
   return (
@@ -33,6 +34,7 @@ const AppRoutes = () => {
           <Route path="trend" element={<Trend />} />
           <Route path="matrixlot" element={<MatrixLot />} />
           <Route path="openPosistions" element={<OpenPosition />} />
+          <Route path="xauusd" element={<XAUUSD />} />
         </Route>
       </Routes>
     </Router>

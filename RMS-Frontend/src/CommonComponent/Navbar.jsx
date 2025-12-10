@@ -16,6 +16,7 @@ const Navbar = () => {
       <Link to="/trend" className="block py-2 px-4 hover:bg-gray-700 rounded">Trend</Link>
       <Link to="/matrixlot" className="block py-2 px-4 hover:bg-gray-700 rounded">Matrix Lot</Link>
       <Link to="/openPosistions" className="block py-2 px-4 hover:bg-gray-700 rounded">Open Posistions</Link>
+      <Link to="/xauusd" className="block py-2 px-4 hover:bg-gray-700 rounded">XAUUSD</Link>
     </nav>
   );
 };
