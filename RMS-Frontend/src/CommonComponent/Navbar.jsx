@@ -9,6 +9,9 @@ const Navbar = () => {
       <Link to="/filtersearch" className="block py-2 px-4 hover:bg-gray-700 rounded">Filter Search</Link>
       <Link to="/profile" className="block py-2 px-4 hover:bg-gray-700 rounded">Profile</Link>
       <Link to="/reports" className="block py-2 px-4 hover:bg-gray-700 rounded">Reports</Link>
+      <Link to="/profitloss" className="block py-2 px-4 hover:bg-gray-700 rounded">P\L</Link>
+      <Link to="/groups" className="block py-2 px-4 hover:bg-gray-700 rounded">Groups</Link>
+      <Link to="/groupdashboard" className="block py-2 px-4 hover:bg-gray-700 rounded">GroupDashboard</Link>
     </nav>
   );
 };
