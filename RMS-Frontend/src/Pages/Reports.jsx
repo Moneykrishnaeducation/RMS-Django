@@ -15,31 +15,41 @@ const API_BASE = "http://127.0.0.1:8000/api/accounts/db";
 const Reports = () => {
   const [data, setData] = useState([]);
 
-  const fetchData = async () => {
-    try {
-      const res = await axios.get(API_BASE);
-      setData(res.data);
-    } catch (err) {
-      console.error("Fetch error:", err);
-    }
-  };
+  // Fetch data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await axios.get(API_BASE);
 
+        const rows =
+          res.data.accounts ||
+          res.data.positions ||
+          res.data ||
+          [];
 
-  // Grouping data (group => count, balance_sum, equity_sum)
-const groupTable = useMemo(() => {
-  const map = {};
-  data.forEach((row) => {
-    const g = row.group || "Unknown";
-    if (!map[g]) map[g] = { group: g, count: 0, balance_sum: 0, equity_sum: 0 };
-    map[g].count += 1;
-    map[g].balance_sum += Number(row.balance || 0);
-    map[g].equity_sum += Number(row.equity || 0);
-  });
-  return Object.values(map).sort((a, b) => b.count - a.count); // all groups
-}, [data]);
+        setData(rows);
+      } catch (err) {
+        console.error("Fetch error:", err);
+      }
+    };
 
+    fetchData();
+  }, []);
 
-  // CSV download
+  // Grouped summary
+  const groupTable = useMemo(() => {
+    const map = {};
+    data.forEach((row) => {
+      const g = row.group || "Unknown";
+      if (!map[g]) map[g] = { group: g, count: 0, balance_sum: 0, equity_sum: 0 };
+      map[g].count++;
+      map[g].balance_sum += Number(row.balance || 0);
+      map[g].equity_sum += Number(row.equity || 0);
+    });
+    return Object.values(map).sort((a, b) => b.count - a.count);
+  }, [data]);
+
+  // CSV Export
   const downloadCSV = () => {
     if (!data.length) return;
     const header = Object.keys(data[0]).join(",") + "\n";
@@ -54,40 +64,79 @@ const groupTable = useMemo(() => {
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <h2 className="text-3xl font-bold mb-6">Reports</h2>
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 p-6">
 
-      {/* Group Table */}
-      <div className="bg-white shadow rounded-lg p-4 mb-8 border border-gray-200 overflow-x-auto">
-        <h3 className="text-xl font-semibold mb-3">Reports</h3>
-        <table className="w-full text-left border-collapse">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="p-2 border">Group</th>
-              <th className="p-2 border">Count</th>
-              <th className="p-2 border">Balance (Sum)</th>
-              <th className="p-2 border">Equity (Sum)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {groupTable.map((g, idx) => (
-              <tr key={idx} className="hover:bg-gray-50">
-                <td className="p-2 border">{g.group}</td>
-                <td className="p-2 border">{g.count}</td>
-                <td className="p-2 border">{g.balance_sum.toFixed(2)}</td>
-                <td className="p-2 border">{g.equity_sum.toFixed(2)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Page Header */}
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold tracking-tight text-gray-800">📊 Reports Dashboard</h1>
+        <p className="text-gray-600 mt-1">Group statistics & account insights</p>
       </div>
 
-      {/* Group Count Bar Chart */}
-      <div className="bg-white shadow rounded-lg p-4 mb-6 border border-gray-200">
-        <h3 className="text-xl font-semibold mb-3">Group Count Chart</h3>
-        <div style={{ width: "100%", height: 400 }}>
-          <ResponsiveContainer>
-            <BarChart data={groupTable} margin={{ top: 20, right: 20, left: 20, bottom: 80 }}>
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
+        {/* Summary Cards */}
+        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+          <p className="text-gray-500 text-sm">Total Accounts</p>
+          <p className="text-3xl font-semibold text-gray-800 mt-1">{data.length}</p>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+          <p className="text-gray-500 text-sm">Total Groups</p>
+          <p className="text-3xl font-semibold text-gray-800 mt-1">{groupTable.length}</p>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+          <p className="text-gray-500 text-sm">Largest Group</p>
+          <p className="text-3xl font-semibold text-gray-800 mt-1">
+            {groupTable[0]?.group || "—"}
+          </p>
+        </div>
+      </div>
+
+      {/* Group Table */}
+      <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-200">
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">📁 Group Report Summary</h2>
+
+        <div className="overflow-x-auto rounded-lg">
+          <table className="w-full border-collapse text-md">
+            <thead>
+              <tr className="bg-gray-100 text-gray-600 uppercase text-xl tracking-wider">
+                <th className="p-3 border">Group</th>
+                <th className="p-3 border">Count</th>
+                <th className="p-3 border">Balance (Sum)</th>
+                <th className="p-3 border">Equity (Sum)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {groupTable.map((g, idx) => (
+                <tr
+                  key={idx}
+                  className="hover:bg-gray-50 transition-colors text-gray-700"
+                >
+                  <td className="p-3 border font-medium">{g.group}</td>
+                  <td className="p-3 border text-center">{g.count}</td>
+                  <td className="p-3 border text-blue-600 font-semibold">
+                    {g.balance_sum.toFixed(2)}
+                  </td>
+                  <td className="p-3 border text-green-600 font-semibold">
+                    {g.equity_sum.toFixed(2)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Chart Section */}
+      <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 mb-10">
+        <h2 className="text-2xl font-semibold text-gray-800 mb-6">📈 Group Count Chart</h2>
+
+        <div className="w-full h-[400px] min-w-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={groupTable}
+              margin={{ top: 20, right: 20, left: 10, bottom: 80 }}
+            >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="group"
@@ -98,19 +147,22 @@ const groupTable = useMemo(() => {
               />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="count" fill="#3b82f6" />
+              <Bar dataKey="count" fill="#3b82f6" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* CSV Download */}
-      <button
-        onClick={downloadCSV}
-        className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded shadow"
-      >
-        Download CSV
-      </button>
+      {/* Download Button */}
+      <div className="text-right mt-4">
+        <button
+          onClick={downloadCSV}
+          className="bg-blue-600 hover:bg-blue-700 transition text-white px-6 py-3 rounded-lg font-medium shadow-md"
+        >
+          ⬇️ Download CSV
+        </button>
+      </div>
+
     </div>
   );
 };
