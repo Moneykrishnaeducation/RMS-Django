@@ -1,17 +1,17 @@
-// API base URL
-const API_BASE = window.location.origin + '/api';
+// API base URL: points to the same domain, adjust if your API prefix is different
+const API_BASE = window.location.origin; // e.g., https://example.com or http://127.0.0.1:8000
 
 // Utility function to display results
 function displayResult(elementId, data, isError = false) {
     const element = document.getElementById(elementId);
     element.className = 'result ' + (isError ? 'error' : 'success');
-    element.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+    element.innerHTML = typeof data === 'string' ? data : `<pre>${JSON.stringify(data, null, 2)}</pre>`;
 }
 
-// Fetch groups from MT5
+// Fetch groups
 async function fetchGroups() {
     try {
-        const response = await fetch(`${API_BASE}/groups/`);
+        const response = await fetch(`${API_BASE}/api/groups/`);
         const data = await response.json();
         if (response.ok) {
             displayResult('groups-result', data);
@@ -26,7 +26,7 @@ async function fetchGroups() {
 // Fetch all accounts
 async function fetchAccounts() {
     try {
-        const response = await fetch(`${API_BASE}/accounts/`);
+        const response = await fetch(`${API_BASE}/api/accounts/`);
         const data = await response.json();
         if (response.ok) {
             displayResult('accounts-result', data);
@@ -47,7 +47,7 @@ async function fetchAccountDetails() {
     }
 
     try {
-        const response = await fetch(`${API_BASE}/accounts/${loginId}/`);
+        const response = await fetch(`${API_BASE}/api/accounts/${loginId}/`);
         const data = await response.json();
         if (response.ok) {
             displayResult('account-details-result', data);
@@ -68,7 +68,7 @@ async function fetchOpenPositions() {
     }
 
     try {
-        const response = await fetch(`${API_BASE}/positions/${loginId}/`);
+        const response = await fetch(`${API_BASE}/api/positions/${loginId}/`);
         const data = await response.json();
         if (response.ok) {
             displayResult('positions-result', data);
@@ -80,15 +80,23 @@ async function fetchOpenPositions() {
     }
 }
 
-// Add event listeners for Enter key on input fields
-document.getElementById('login-id').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        fetchAccountDetails();
-    }
-});
+async function fetchAllOpenPositions() {
+    try {
+        const response = await fetch(`${API_BASE}/api/positions/sync_all/`); // <-- add /api if needed
+        const data = await response.json();
 
-document.getElementById('position-login-id').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        fetchOpenPositions();
+        if (response.ok) {
+            displayResult('all-positions-result', data);
+        } else {
+            displayResult('all-positions-result', data.error || 'Failed to sync all positions', true);
+        }
+    } catch (error) {
+        displayResult('all-positions-result', `Error: ${error.message}`, true);
     }
+}
+
+// Auto-load data on page load
+window.addEventListener('DOMContentLoaded', function() {
+    fetchGroups();
+    fetchAccounts();
 });
