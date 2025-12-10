@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 
 const API_URL = "http://127.0.0.1:8000/api/lots/all/";
@@ -8,6 +8,9 @@ const MatrixLot = () => {
   const [symbols, setSymbols] = useState([]);
   const [totalRow, setTotalRow] = useState({});
   const [loading, setLoading] = useState(true);
+
+  // Search
+  const [searchLogin, setSearchLogin] = useState("");
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -31,15 +34,13 @@ const MatrixLot = () => {
       const table = uniqueLogins.map(login => {
         const row = { login };
         uniqueSymbols.forEach(symbol => {
-          const item = raw.find(
-            x => x.login_id === login && x.symbol === symbol
-          );
+          const item = raw.find(x => x.login_id === login && x.symbol === symbol);
           row[symbol] = item ? parseFloat(item.lot).toFixed(2) : "";
         });
         return row;
       });
 
-      // Total row (All Login)
+      // Total row
       const total = { login: "All Login" };
       uniqueSymbols.forEach(symbol => {
         const sum = raw
@@ -59,8 +60,16 @@ const MatrixLot = () => {
     }
   };
 
-  const totalPages = Math.ceil(matrix.length / pageSize);
-  const paginated = matrix.slice(
+  // 🔍 FILTER MATRIX BY LOGIN
+  const filteredMatrix = useMemo(() => {
+    return matrix.filter(row =>
+      row.login.toString().toLowerCase().includes(searchLogin.toLowerCase())
+    );
+  }, [matrix, searchLogin]);
+
+  const totalPages = Math.ceil(filteredMatrix.length / pageSize);
+
+  const paginated = filteredMatrix.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
@@ -76,13 +85,30 @@ const MatrixLot = () => {
   return (
     <div className="p-8">
 
-      {/* Title */}
+      {/* TITLE */}
       <h2 className="text-3xl font-extrabold mb-6 flex items-center gap-3">
-        <span>📊</span> 
+        <span>📊</span>
         <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
           Login vs Symbol Matrix – Net Lot
         </span>
       </h2>
+
+      {/* 🔍 SEARCH BAR */}
+      <div className="mb-6">
+        <input
+          type="text"
+          placeholder="Search by Login..."
+          value={searchLogin}
+          onChange={(e) => {
+            setSearchLogin(e.target.value);
+            setCurrentPage(1); // reset page on search
+          }}
+          className="
+            w-80 px-4 py-2 rounded-xl border border-gray-300 shadow-sm
+            focus:ring-2 focus:ring-blue-400 focus:border-blue-500
+          "
+        />
+      </div>
 
       {loading ? (
         <div className="text-center py-10 text-lg animate-pulse text-gray-500">
@@ -94,21 +120,16 @@ const MatrixLot = () => {
           backdrop-blur-xl bg-white/50 overflow-hidden
         ">
 
-          {/* Scrollable table */}
           <div className="overflow-auto max-h-[75vh]">
             <table className="min-w-max w-full border-collapse">
 
-              {/* HEADER */}
               <thead className="sticky top-0 z-30 shadow bg-gradient-to-r from-gray-100 to-gray-200">
                 <tr>
                   <th className="border px-4 py-3 text-left sticky left-0 bg-gradient-to-r from-gray-100 to-gray-200 z-20 font-semibold">
                     Login
                   </th>
                   {symbols.map(symbol => (
-                    <th
-                      key={symbol}
-                      className="border px-3 py-2 text-center"
-                    >
+                    <th key={symbol} className="border px-3 py-2 text-center">
                       <span className="px-2 py-1 rounded-full bg-gray-800 text-white text-xs shadow">
                         {symbol}
                       </span>
@@ -131,7 +152,7 @@ const MatrixLot = () => {
                   ))}
                 </tr>
 
-                {/* PAGINATED ROWS */}
+                {/* ROWS */}
                 {paginated.map((row, idx) => (
                   <tr
                     key={idx}
@@ -139,12 +160,10 @@ const MatrixLot = () => {
                       idx % 2 === 0 ? "bg-white" : "bg-gray-50"
                     } hover:bg-gray-100`}
                   >
-                    {/* Sticky Login Column */}
                     <td className="border px-4 py-2 sticky left-0 bg-white font-medium shadow-sm">
-                      <span className="text-gray-900">{row.login}</span>
+                      {row.login}
                     </td>
 
-                    {/* Data Cells with Heatmap */}
                     {symbols.map(symbol => (
                       <td
                         key={symbol}
@@ -161,7 +180,7 @@ const MatrixLot = () => {
             </table>
           </div>
 
-          {/* PAGINATION AREA */}
+          {/* PAGINATION */}
           <div className="flex items-center justify-between p-4 bg-gray-100 border-t">
 
             <div className="text-sm text-gray-600">
@@ -170,19 +189,15 @@ const MatrixLot = () => {
 
             <div className="flex gap-2">
 
-              {/* PREVIOUS */}
               <button
                 onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
-                className={`px-4 py-2 rounded-lg text-sm font-medium shadow-md
-                  ${currentPage === 1 
-                    ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
-                    : "bg-white hover:bg-gray-200"}
-                `}
+                disabled={currentPage === 1}
+                className="px-4 py-2 rounded-lg text-sm font-medium shadow-md
+                  bg-white hover:bg-gray-200 disabled:bg-gray-300 disabled:text-gray-500"
               >
                 ← Prev
               </button>
 
-              {/* PAGE NUMBERS */}
               {[...Array(totalPages)].map((_, i) => (
                 <button
                   key={i}
@@ -198,14 +213,11 @@ const MatrixLot = () => {
                 </button>
               ))}
 
-              {/* NEXT */}
               <button
                 onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
-                className={`px-4 py-2 rounded-lg text-sm font-medium shadow-md
-                  ${currentPage === totalPages
-                    ? "bg-gray-300 text-gray-400 cursor-not-allowed"
-                    : "bg-white hover:bg-gray-200"}
-                `}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 rounded-lg text-sm font-medium shadow-md
+                  bg-white hover:bg-gray-200 disabled:bg-gray-300 disabled:text-gray-500"
               >
                 Next →
               </button>

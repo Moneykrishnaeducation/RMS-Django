@@ -9,6 +9,9 @@ const OpenPosition = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [positionsPerPage] = useState(10);
 
+  const [searchLogin, setSearchLogin] = useState("");
+  const [searchName, setSearchName] = useState("");
+
   // -------------------------
   // FETCH BOTH APIs
   // -------------------------
@@ -34,16 +37,14 @@ const OpenPosition = () => {
     if (positions.length && accounts.length) {
       const accMap = {};
 
-      // create lookup table
       accounts.forEach((acc) => {
-        accMap[acc.login] = acc; 
+        accMap[acc.login] = acc;
       });
 
-      // merge
       const finalMerge = positions.map((p) => ({
         ...p,
         name: accMap[p.login__login]?.name || "-",
-        group: accMap[p.login__login]?.group || "-"
+        group: accMap[p.login__login]?.group || "-",
       }));
 
       setMergedData(finalMerge);
@@ -51,12 +52,27 @@ const OpenPosition = () => {
   }, [positions, accounts]);
 
   // -------------------------
+  // FILTERING (Login + Name)
+  // -------------------------
+  const filteredData = mergedData.filter((p) => {
+    const matchLogin = searchLogin
+      ? String(p.login__login).includes(searchLogin)
+      : true;
+
+    const matchName = searchName
+      ? p.name.toLowerCase().includes(searchName.toLowerCase())
+      : true;
+
+    return matchLogin && matchName;
+  });
+
+  // -------------------------
   // PAGINATION
   // -------------------------
-  const totalPages = Math.ceil(mergedData.length / positionsPerPage);
+  const totalPages = Math.ceil(filteredData.length / positionsPerPage);
   const indexOfLast = currentPage * positionsPerPage;
   const indexOfFirst = indexOfLast - positionsPerPage;
-  const currentPositions = mergedData.slice(indexOfFirst, indexOfLast);
+  const currentPositions = filteredData.slice(indexOfFirst, indexOfLast);
 
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
@@ -69,7 +85,11 @@ const OpenPosition = () => {
     } else {
       pages.push(1);
       if (currentPage > 4) pages.push("...");
-      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+      for (
+        let i = Math.max(2, currentPage - 1);
+        i <= Math.min(totalPages - 1, currentPage + 1);
+        i++
+      ) {
         pages.push(i);
       }
       if (currentPage < totalPages - 3) pages.push("...");
@@ -81,20 +101,47 @@ const OpenPosition = () => {
   // -------------------------
   // SUMMARY
   // -------------------------
-  const totalPositions = mergedData.length;
-  const topProfit = mergedData.reduce(
-    (max, pos) => (parseFloat(pos.profit) > parseFloat(max) ? pos.profit : max),
-    mergedData.length ? mergedData[0].profit : 0
-  );
-  const topLoss = mergedData.reduce(
-    (min, pos) => (parseFloat(pos.profit) < parseFloat(min) ? pos.profit : min),
-    mergedData.length ? mergedData[0].profit : 0
-  );
-  const totalSymbols = [...new Set(mergedData.map((p) => p.symbol))].length;
+  const totalPositions = filteredData.length;
+  const topProfit = filteredData.length
+    ? Math.max(...filteredData.map((p) => Number(p.profit)))
+    : 0;
+
+  const topLoss = filteredData.length
+    ? Math.min(...filteredData.map((p) => Number(p.profit)))
+    : 0;
+
+  const totalSymbols = [...new Set(filteredData.map((p) => p.symbol))].length;
 
   return (
     <div className="p-4">
-      <h2 className="text-2xl font-semibold mb-4 text-gray-800">Open Positions</h2>
+      <h2 className="text-2xl font-semibold mb-4 text-gray-800">
+        Open Positions
+      </h2>
+
+      {/* Filters */}
+      <div className="flex gap-4 mb-4">
+        <input
+          type="text"
+          placeholder="Search Login..."
+          className="border px-3 py-2 rounded w-48"
+          value={searchLogin}
+          onChange={(e) => {
+            setSearchLogin(e.target.value);
+            setCurrentPage(1);
+          }}
+        />
+
+        <input
+          type="text"
+          placeholder="Search Name..."
+          className="border px-3 py-2 rounded w-64"
+          value={searchName}
+          onChange={(e) => {
+            setSearchName(e.target.value);
+            setCurrentPage(1);
+          }}
+        />
+      </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
@@ -121,20 +168,25 @@ const OpenPosition = () => {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              {["Login", "Name", "Group", "Base Symbol", "Net Lot", "USD P&L"].map((header) => (
-                <th
-                  key={header}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  {header}
-                </th>
-              ))}
+              {["Login", "Name", "Group", "Base Symbol", "Net Lot", "USD P&L"].map(
+                (header) => (
+                  <th
+                    key={header}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    {header}
+                  </th>
+                )
+              )}
             </tr>
           </thead>
 
           <tbody className="bg-white divide-y divide-gray-200">
             {currentPositions.map((pos, index) => (
-              <tr key={index} className="hover:bg-gray-100 transition-colors duration-200 text-center">
+              <tr
+                key={index}
+                className="hover:bg-gray-100 transition-colors duration-200 text-center"
+              >
                 <td className="px-6 py-4 whitespace-nowrap">{pos.login__login}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{pos.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{pos.group}</td>
@@ -143,7 +195,9 @@ const OpenPosition = () => {
 
                 <td
                   className={`px-6 py-4 whitespace-nowrap font-medium ${
-                    parseFloat(pos.profit) >= 0 ? "text-green-600" : "text-red-600"
+                    parseFloat(pos.profit) >= 0
+                      ? "text-green-600"
+                      : "text-red-600"
                   }`}
                 >
                   {pos.profit}
@@ -177,7 +231,9 @@ const OpenPosition = () => {
         <div className="flex space-x-1">
           {paginationNumbers().map((page, idx) =>
             page === "..." ? (
-              <span key={idx} className="px-3 py-1 text-gray-500">...</span>
+              <span key={idx} className="px-3 py-1 text-gray-500">
+                ...
+              </span>
             ) : (
               <button
                 key={idx}
