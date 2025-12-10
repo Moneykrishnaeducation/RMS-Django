@@ -1,26 +1,43 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { 
+  FaTachometerAlt, FaUsers, FaSearch, FaUser, FaFileAlt, FaDollarSign, 
+  FaLayerGroup, FaChartLine, FaProjectDiagram, FaBoxOpen, FaCoins, FaFile, FaEye 
+} from "react-icons/fa";
 
 const Navbar = () => {
+  const links = [
+    { name: "Dashboard", to: "/dashboard", icon: <FaTachometerAlt /> },
+    { name: "Account Details", to: "/accounts", icon: <FaUsers /> },
+    { name: "Filter Search", to: "/filtersearch", icon: <FaSearch /> },
+    { name: "Profile", to: "/profile", icon: <FaUser /> },
+    { name: "Reports", to: "/reports", icon: <FaFileAlt /> },
+    { name: "P/L", to: "/profitloss", icon: <FaDollarSign /> },
+    { name: "Groups", to: "/groups", icon: <FaLayerGroup /> },
+    { name: "GroupDashboard", to: "/groupdashboard", icon: <FaChartLine /> },
+    { name: "Net Lot", to: "/netlot", icon: <FaProjectDiagram /> },
+    { name: "Trend", to: "/trend", icon: <FaChartLine /> },
+    { name: "Matrix Lot", to: "/matrixlot", icon: <FaCoins /> },
+    { name: "Open Positions", to: "/openPosistions", icon: <FaBoxOpen /> },
+    { name: "XAUUSD", to: "/xauusd", icon: <FaDollarSign /> },
+    { name: "File Management", to: "/filemanagement", icon: <FaFile /> },
+    { name: "Watch Manager", to: "/watchmanager", icon: <FaEye /> },
+  ];
+
   return (
     <nav className="fixed left-0 top-0 h-screen w-64 bg-gray-800 text-white flex flex-col items-start p-4">
-      <Link to="/dashboard" className="block py-2 px-4 hover:bg-gray-700 rounded mb-2">Dashboard</Link>
-      <Link to="/accounts" className="block py-2 px-4 hover:bg-gray-700 rounded mb-2">Account Details</Link>
-      <Link to="/filtersearch" className="block py-2 px-4 hover:bg-gray-700 rounded">Filter Search</Link>
-      <Link to="/profile" className="block py-2 px-4 hover:bg-gray-700 rounded">Profile</Link>
-      <Link to="/reports" className="block py-2 px-4 hover:bg-gray-700 rounded">Reports</Link>
-      <Link to="/profitloss" className="block py-2 px-4 hover:bg-gray-700 rounded">P\L</Link>
-      <Link to="/groups" className="block py-2 px-4 hover:bg-gray-700 rounded">Groups</Link>
-      <Link to="/groupdashboard" className="block py-2 px-4 hover:bg-gray-700 rounded">GroupDashboard</Link>
-      <Link to="/netlot" className="block py-2 px-4 hover:bg-gray-700 rounded">Net Lot</Link>
-      <Link to="/trend" className="block py-2 px-4 hover:bg-gray-700 rounded">Trend</Link>
-      <Link to="/matrixlot" className="block py-2 px-4 hover:bg-gray-700 rounded">Matrix Lot</Link>
-      <Link to="/openPosistions" className="block py-2 px-4 hover:bg-gray-700 rounded">Open Posistions</Link>
-      <Link to="/xauusd" className="block py-2 px-4 hover:bg-gray-700 rounded">XAUUSD</Link>
-      <Link to="/filemanagement" className="block py-2 px-4 hover:bg-gray-700 rounded">File Management</Link>
-      <Link to="/watchmanager" className="block py-2 px-4 hover:bg-gray-700 rounded">Watch Manager</Link>
+      {links.map((link) => (
+        <Link
+          key={link.to}
+          to={link.to}
+          className="block py-2 px-4 hover:bg-gray-700 rounded mb-2 flex items-center gap-2"
+        >
+          <span>{link.icon}</span>
+          <span>{link.name}</span>
+        </Link>
+      ))}
     </nav>
   );
 };
- 
+
 export default Navbar;
