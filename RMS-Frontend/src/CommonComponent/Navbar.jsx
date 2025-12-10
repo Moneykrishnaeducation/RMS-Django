@@ -15,6 +15,7 @@ const Navbar = () => {
     { name: "P/L", to: "/profitloss", icon: <FaDollarSign /> },
     { name: "Groups", to: "/groups", icon: <FaLayerGroup /> },
     { name: "GroupDashboard", to: "/groupdashboard", icon: <FaChartLine /> },
+    { name: "Symbol view ", to: "/symbolPositions ", icon: <FaChartLine /> },
     { name: "Net Lot", to: "/netlot", icon: <FaProjectDiagram /> },
     { name: "Trend", to: "/trend", icon: <FaChartLine /> },
     { name: "Matrix Lot", to: "/matrixlot", icon: <FaCoins /> },
@@ -26,13 +27,14 @@ const Navbar = () => {
 
   return (
     <nav className="fixed left-0 top-0 h-screen w-64 bg-gray-800 text-white flex flex-col items-start p-4">
+      <img src="https://vtindex.com/img/logo/logo.svg" alt="logo" className='mx-auto mb-4'/>
       {links.map((link) => (
         <Link
           key={link.to}
           to={link.to}
           className="block py-2 px-4 hover:bg-gray-700 rounded mb-2 flex items-center gap-2"
         >
-          <span>{link.icon}</span>
+          <span className='text-yellow-500 text-xl'>{link.icon}</span>
           <span>{link.name}</span>
         </Link>
       ))}

@@ -16,6 +16,7 @@ import OpenPosition from '../Pages/OpenPosition';
 import XAUUSD from '../Pages/Xauusd';
 import FileManagement from '../Pages/FileManagement';
 import WatchManager from '../Pages/WatchManager';
+import SymbolPositions from '../Pages/SymbolPositions';
 
 const AppRoutes = () => {
   return (
@@ -39,6 +40,7 @@ const AppRoutes = () => {
           <Route path="xauusd" element={<XAUUSD />} />
           <Route path="filemanagement" element={<FileManagement />} />
           <Route path="watchmanager" element={<WatchManager />} />
+          <Route path="symbolPositions" element={<SymbolPositions />} />
 
         </Route>
       </Routes>
