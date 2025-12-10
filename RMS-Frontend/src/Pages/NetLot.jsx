@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 
-const NET_LOT_API = "http://127.0.0.1:8000/api/api/positions/open/"; // Replace with your API
+const volume_API = "http://127.0.0.1:8000/api/positions/open/";
 
 const NetLot = () => {
   const [data, setData] = useState([]);
@@ -9,22 +9,65 @@ const NetLot = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Fetch Net Lot data
+  // --------------------------------------------------
+  // FETCH + NORMALIZE
+  // --------------------------------------------------
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+
       try {
-        const res = await axios.get(NET_LOT_API);
-        // Handle different response structures
-        let df = [];
-        if (Array.isArray(res.data)) df = res.data;
-        else if (res.data.results && Array.isArray(res.data.results)) df = res.data.results;
-        else if (res.data.data && Array.isArray(res.data.data)) df = res.data.data;
+        const res = await axios.get(volume_API);
+
+        console.log("RAW API DATA:", res.data);
+
+        // Flexible extraction (handles any backend format)
+        let rows =
+          Array.isArray(res.data)
+            ? res.data
+            : Array.isArray(res.data?.results)
+            ? res.data.results
+            : Array.isArray(res.data?.data)
+            ? res.data.data
+            : Array.isArray(res.data?.positions)
+            ? res.data.positions
+            : [];
+
+        console.log("ROWS:", rows);
+
+        // Normalize safely
+        const df = rows.map((item) => {
+          const symbol =
+            item.symbol ||
+            item.Symbol ||
+            item.symbol_name ||
+            item?.position?.symbol ||
+            "";
+
+          const volume =
+            Number(item.volume) ||
+            Number(item.Volume) ||
+            Number(item.lots) ||
+            Number(item?.position?.volume) ||
+            0;
+
+          const profit =
+            Number(item.profit) ||
+            Number(item.Profit) ||
+            Number(item.pnl) ||
+            Number(item?.position?.profit) ||
+            0;
+
+          return { symbol: String(symbol), volume, profit };
+        });
+
+        console.log("FINAL NORMALIZED:", df);
+        console.log("TOTAL SYMBOLS:", df.length);
 
         setData(df);
         setFilteredData(df);
       } catch (err) {
-        console.error("Fetch error:", err.response || err.message);
+        console.error("Fetch error:", err);
         setData([]);
         setFilteredData([]);
       } finally {
@@ -33,38 +76,57 @@ const NetLot = () => {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 15000); // auto-refresh every 15 sec
+    const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
   }, []);
 
-  // Filter data based on search
+  // --------------------------------------------------
+  // FILTER LOGIC
+  // --------------------------------------------------
   useEffect(() => {
-    if (!searchTerm) setFilteredData(data);
-    else {
-      const term = searchTerm.toLowerCase();
-      setFilteredData(data.filter(d => d.symbol.toLowerCase().includes(term)));
+    const term = searchTerm.trim().toLowerCase();
+
+    if (!term) {
+      setFilteredData(data);
+      return;
     }
+
+    const filtered = data.filter((d) =>
+      d.symbol.toLowerCase().includes(term)
+    );
+
+    console.log("FILTERED RESULT:", filtered);
+    setFilteredData(filtered);
   }, [searchTerm, data]);
 
-  // Compute totals
+  // --------------------------------------------------
+  // TOTALS
+  // --------------------------------------------------
   const totals = useMemo(() => {
-    if (!filteredData.length) return { totalSymbols: 0, totalNetLot: 0, totalUSDPL: 0 };
+    if (!filteredData.length)
+      return { totalSymbols: 0, totalNetLot: 0, totalUSDPL: 0 };
+
     return {
       totalSymbols: filteredData.length,
-      totalNetLot: filteredData.reduce((sum, d) => sum + (Number(d.net_lot) || 0), 0),
-      totalUSDPL: filteredData.reduce((sum, d) => sum + (Number(d.usd_pnl) || 0), 0),
+      totalNetLot: filteredData.reduce((sum, d) => sum + d.volume, 0),
+      totalUSDPL: filteredData.reduce((sum, d) => sum + d.profit, 0),
     };
   }, [filteredData]);
 
-  // CSV download
+  // --------------------------------------------------
+  // CSV DOWNLOAD
+  // --------------------------------------------------
   const downloadCSV = () => {
     if (!filteredData.length) return;
+
     const header = Object.keys(filteredData[0]).join(",") + "\n";
     const rows = filteredData
-      .map(row => Object.values(row).map(v => `"${v}"`).join(","))
+      .map((row) => Object.values(row).join(","))
       .join("\n");
+
     const blob = new Blob([header + rows], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
+
     const a = document.createElement("a");
     a.href = url;
     a.download = "net_lot_data.csv";
@@ -72,47 +134,56 @@ const NetLot = () => {
     window.URL.revokeObjectURL(url);
   };
 
-  if (loading) return <p className="p-6">Loading...</p>;
+  if (loading) return <p className="p-6 text-lg">Loading...</p>;
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-4xl font-bold mb-4 text-gray-800">📊 Net Lot Dashboard</h1>
+      <h1 className="text-4xl font-bold mb-4 text-gray-800">
+        📊 Net Lot Dashboard
+      </h1>
 
-      {/* Metrics */}
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white shadow rounded-lg p-4 border border-gray-200 text-center">
+        <div className="bg-white shadow p-4 border text-center rounded-lg">
           <p className="text-gray-500">Total Symbols</p>
-          <p className="text-2xl font-bold text-gray-800">{totals.totalSymbols}</p>
+          <p className="text-2xl font-bold">{totals.totalSymbols}</p>
         </div>
-        <div className="bg-white shadow rounded-lg p-4 border border-gray-200 text-center">
+
+        <div className="bg-white shadow p-4 border text-center rounded-lg">
           <p className="text-gray-500">Total Net Lot</p>
-          <p className="text-2xl font-bold text-blue-600">{totals.totalNetLot.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-blue-600">
+            {totals.totalNetLot.toFixed(2)}
+          </p>
         </div>
-        <div className="bg-white shadow rounded-lg p-4 border border-gray-200 text-center">
+
+        <div className="bg-white shadow p-4 border text-center rounded-lg">
           <p className="text-gray-500">Total USD P&L</p>
-          <p className="text-2xl font-bold text-green-600">${totals.totalUSDPL.toLocaleString()}</p>
+          <p className="text-2xl font-bold text-green-600">
+            ${totals.totalUSDPL.toFixed(2)}
+          </p>
         </div>
       </div>
 
-      {/* Search & CSV */}
-      <div className="flex justify-between items-center mb-4">
+      {/* Search + CSV */}
+      <div className="flex justify-between mb-4">
         <input
           type="text"
           placeholder="Search symbol..."
-          className="border border-gray-300 rounded px-3 py-2 w-1/2"
+          className="border px-3 py-2 rounded w-1/2"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
+
         <button
           onClick={downloadCSV}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
+          className="bg-blue-500 text-white px-4 py-2 rounded"
         >
           📥 Download CSV
         </button>
       </div>
 
       {/* Table */}
-      <div className="bg-white shadow rounded-lg p-4 border border-gray-200 overflow-x-auto">
+      <div className="bg-white shadow rounded-lg p-4 border overflow-x-auto">
         <table className="w-full table-auto border-collapse">
           <thead>
             <tr className="bg-gray-100 text-gray-600 uppercase text-sm">
@@ -121,13 +192,18 @@ const NetLot = () => {
               <th className="p-3 border">USD P&L</th>
             </tr>
           </thead>
+
           <tbody>
             {filteredData.length ? (
               filteredData.map((d, idx) => (
-                <tr key={idx} className="hover:bg-gray-50 transition-colors text-gray-700">
-                  <td className="p-2 border font-medium">{d.symbol}</td>
-                  <td className="p-2 border text-center">{Number(d.volume).toFixed(2)}</td>
-                  <td className="p-2 border text-center">${Number(d.usd_pnl).toFixed(2)}</td>
+                <tr key={idx} className="hover:bg-gray-50 text-gray-700">
+                  <td className="p-2 border">{d.symbol}</td>
+                  <td className="p-2 border text-center">
+                    {d.volume.toFixed(2)}
+                  </td>
+                  <td className="p-2 border text-center">
+                    {d.profit.toFixed(2)}
+                  </td>
                 </tr>
               ))
             ) : (
