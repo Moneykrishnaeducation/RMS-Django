@@ -6,6 +6,7 @@ import Profile from '../Pages/Profile';
 import MainPage from '../CommonComponent/MainPage';
 import Accounts from '../Pages/Accounts';
 import Reports from '../Pages/Reports';
+import ProfitLoss from '../Pages/ProfitLoss';
 
 const AppRoutes = () => {
   return (
@@ -19,6 +20,9 @@ const AppRoutes = () => {
           <Route path="filtersearch" element={<FilterSearch />} />
           <Route path="accounts" element={<Accounts />} />
           <Route path="reports" element={<Reports />} />
+          <Route path="profitloss" element={<ProfitLoss />} />
+          <Route path="groups" element={<Groups />} />
+          <Route path="groupdashboard" element={<GroupDashboard />} />
         </Route>
       </Routes>
     </Router>
