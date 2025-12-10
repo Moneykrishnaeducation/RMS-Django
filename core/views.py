@@ -1,3 +1,4 @@
+import time
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
@@ -20,10 +21,12 @@ from django.utils import timezone
 from .models import Accounts, OpenPositions
 from django.db.models import Sum
 
+from datetime import datetime, timezone
+
 def normalize_date(date_value):
     """Ensure date_value is a valid datetime object."""
     if date_value is None:
-        return timezone.now()
+        return datetime.now(timezone.utc)  # Use datetime.timezone.utc here
     elif isinstance(date_value, str):
         try:
             # If the date ends with 'Z', replace it with '+00:00' (for UTC time)
@@ -33,14 +36,22 @@ def normalize_date(date_value):
             return datetime.fromisoformat(date_value)
         except Exception as e:
             print(f"Error parsing date {date_value}: {e}. Returning current time.")
-            return timezone.now()
+            return datetime.now(timezone.utc)  # Use datetime.timezone.utc here
     elif isinstance(date_value, datetime):
         # If it's already a datetime object, return it
         return date_value
+    elif isinstance(date_value, int):
+        # If it's an integer (Unix timestamp), convert it to a datetime object
+        try:
+            return datetime.fromtimestamp(date_value, tz=timezone.utc)  # Convert to UTC time
+        except Exception as e:
+            print(f"Error converting timestamp {date_value}: {e}. Returning current time.")
+            return datetime.now(timezone.utc)  # Use datetime.timezone.utc here
     else:
         # If it's any other type, return the current time
         print(f"Unexpected date type: {type(date_value)}. Returning current time.")
-        return timezone.now()
+        return datetime.now(timezone.utc)  # Use datetime.timezone.utc here
+
 
 @csrf_exempt
 @require_http_methods(["GET"])
@@ -401,15 +412,18 @@ def get_account_details(request, login_id):
 def get_open_positions(request, login_id):
     """Get open positions for a specific login ID from MT5 and store in DB."""
     try:
+        # Start the background thread for auto-sync
+        sync_thread = threading.Thread(target=sync_open_positions_periodically, args=(login_id,))
+        sync_thread.daemon = True  # Daemonize the thread so it stops when the main program stops
+        sync_thread.start()
+
+        # Fetch and return the current positions
         svc = MT5Service()
         positions = svc.get_open_positions(login_id)
         print(f"Fetched {len(positions)} positions from MT5 for login {login_id}")
-        print(f"Positions data: {positions}")
-        # Store positions in database
-        from .models import Accounts, OpenPositions
-        from django.utils import timezone
+
+        # Store positions in the database
         account = Accounts.objects.get(login=login_id)
-        # Get current positions in DB for this login
         existing_positions = set(OpenPositions.objects.filter(login=account).values_list('position_id', flat=True))
         fetched_positions = set()
         stored_count = 0
@@ -418,7 +432,6 @@ def get_open_positions(request, login_id):
             if pos_id is None:
                 print(f"Warning: Position missing 'id' field: {pos}")
                 continue
-            # Skip if required fields are None
             symbol = pos.get('symbol')
             volume = pos.get('volume')
             price = pos.get('price')
@@ -437,7 +450,7 @@ def get_open_positions(request, login_id):
                         'price': price,
                         'profit': pos.get('profit') or 0,
                         'position_type': position_type,
-                        'date_created': pos.get('date') or timezone.now(),
+                        'date_created': normalize_date(pos.get('date')),
                     }
                 )
                 stored_count += 1
@@ -445,16 +458,78 @@ def get_open_positions(request, login_id):
             except Exception as e:
                 print(f"Error storing position {pos_id}: {e}")
                 continue
+
         # Delete positions that are no longer open
         to_delete = existing_positions - fetched_positions
         if to_delete:
             deleted_count = OpenPositions.objects.filter(login=account, position_id__in=to_delete).delete()[0]
             print(f"Deleted {deleted_count} closed positions")
+
         print(f"Successfully stored {stored_count} positions for login {login_id}")
         return JsonResponse({'positions': positions, 'stored': True, 'stored_count': stored_count}, safe=False)
+
     except Exception as e:
         print(f"Error in get_open_positions: {e}")
         return JsonResponse({'error': str(e)}, status=500)
+
+# Function to perform the sync periodically in a background thread
+def sync_open_positions_periodically(login_id):
+    """Background thread to sync open positions periodically for a specific login_id."""
+    while True:
+        try:
+            svc = MT5Service()
+            positions = svc.get_open_positions(login_id)
+            print(f"Fetched {len(positions)} positions from MT5 for login {login_id}")
+            # Store positions in the database
+            account = Accounts.objects.get(login=login_id)
+            existing_positions = set(OpenPositions.objects.filter(login=account).values_list('position_id', flat=True))
+            fetched_positions = set()
+            stored_count = 0
+            for pos in positions:
+                pos_id = pos.get('id')
+                if pos_id is None:
+                    print(f"Warning: Position missing 'id' field: {pos}")
+                    continue
+                # Skip if required fields are None
+                symbol = pos.get('symbol')
+                volume = pos.get('volume')
+                price = pos.get('price')
+                position_type = pos.get('type')
+                if symbol is None or volume is None or price is None or position_type is None:
+                    print(f"Warning: Position {pos_id} has None values for required fields: symbol={symbol}, volume={volume}, price={price}, type={position_type}")
+                    continue
+                fetched_positions.add(pos_id)
+                try:
+                    obj, created = OpenPositions.objects.update_or_create(
+                        login=account,
+                        position_id=pos_id,
+                        defaults={
+                            'symbol': symbol,
+                            'volume': volume,
+                            'price': price,
+                            'profit': pos.get('profit') or 0,
+                            'position_type': position_type,
+                            'date_created': normalize_date(pos.get('date')),
+                        }
+                    )
+                    stored_count += 1
+                    print(f"Stored position {pos_id}: created={created}")
+                except Exception as e:
+                    print(f"Error storing position {pos_id}: {e}")
+                    continue
+
+            # Delete positions that are no longer open
+            to_delete = existing_positions - fetched_positions
+            if to_delete:
+                deleted_count = OpenPositions.objects.filter(login=account, position_id__in=to_delete).delete()[0]
+                print(f"Deleted {deleted_count} closed positions")
+
+            print(f"Successfully stored {stored_count} positions for login {login_id}")
+        except Exception as e:
+            print(f"Error in sync_open_positions_periodically for login {login_id}: {str(e)}")
+
+        # Sleep for the desired period before syncing again (e.g., every 60 seconds)
+        time.sleep(60)  # Adjust the interval as needed
 
 @csrf_exempt
 @require_http_methods(["GET"])
@@ -516,29 +591,25 @@ def list_accounts(request):
         svc = MT5Service()
         accounts = svc.list_accounts_by_groups()
         print(f"Fetched {len(accounts)} accounts from MT5")
+        
         # Store accounts in database
         from .models import Accounts
         from datetime import datetime
+        
         stored_count = 0
         for acc in accounts:
             try:
-                # print(f"Processing account: {acc}")
-                # Convert string dates to datetime if present
                 last_access = None
                 registration = None
+                
+                # Handle last_access (either string, datetime, or timestamp)
                 if acc.get('last_access'):
-                    try:
-                        last_access = datetime.fromisoformat(acc['last_access'].replace('Z', '+00:00'))
-                    except Exception as e:
-                        print(f"Error parsing last_access: {e}")
-                        last_access = None
-                if acc.get('registration'):
-                    try:
-                        registration = datetime.fromisoformat(acc['registration'].replace('Z', '+00:00'))
-                    except Exception as e:
-                        print(f"Error parsing registration: {e}")
-                        registration = None
+                    last_access = normalize_date(acc['last_access'])
 
+                # Handle registration (either string, datetime, or timestamp)
+                if acc.get('registration'):
+                    registration = normalize_date(acc['registration'])
+                
                 account_obj, created = Accounts.objects.update_or_create(
                     login=acc['login'],
                     defaults={
@@ -547,6 +618,7 @@ def list_accounts(request):
                         'group': acc.get('group'),
                         'leverage': acc.get('leverage'),
                         'balance': acc.get('balance', 0),
+                        'volume': round(acc.get(p, 'Volume', 0) / 10000, 2),
                         'equity': acc.get('equity', 0),
                         'profit': acc.get('profit', 0),
                         'margin': acc.get('margin', 0),
@@ -561,13 +633,14 @@ def list_accounts(request):
             except Exception as e:
                 print(f"Error storing account {acc.get('login')}: {e}")
                 continue
+        
         print(f"Successfully stored {stored_count} accounts in database")
         return JsonResponse({'accounts': accounts, 'stored': True, 'stored_count': stored_count}, safe=False)
+    
     except Exception as e:
         print(f"Error in list_accounts: {e}")
         return JsonResponse({'error': str(e)}, status=500)
-    
-    
+
 
 @csrf_exempt
 @require_http_methods(["GET"])
