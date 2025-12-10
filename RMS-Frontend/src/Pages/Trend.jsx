@@ -5,5 +5,4 @@ const Trend = () => {
     <div>Trend</div>
   )
 }
-
 export default Trend
