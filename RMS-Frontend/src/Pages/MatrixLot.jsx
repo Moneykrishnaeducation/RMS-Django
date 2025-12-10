@@ -1,9 +1,222 @@
-import React from 'react'
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+
+const API_URL = "http://127.0.0.1:8000/api/lots/all/";
 
 const MatrixLot = () => {
-  return (
-    <div>MatrixLot</div>
-  )
-}
+  const [matrix, setMatrix] = useState([]);
+  const [symbols, setSymbols] = useState([]);
+  const [totalRow, setTotalRow] = useState({});
+  const [loading, setLoading] = useState(true);
 
-export default MatrixLot
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
+  useEffect(() => {
+    fetchMatrix();
+  }, []);
+
+  const fetchMatrix = async () => {
+    try {
+      const res = await axios.get(API_URL);
+      const raw = res.data.data;
+
+      const uniqueLogins = [...new Set(raw.map(i => i.login_id))];
+      const uniqueSymbols = [...new Set(raw.map(i => i.symbol))];
+
+      setSymbols(uniqueSymbols);
+
+      // Construct matrix rows
+      const table = uniqueLogins.map(login => {
+        const row = { login };
+        uniqueSymbols.forEach(symbol => {
+          const item = raw.find(
+            x => x.login_id === login && x.symbol === symbol
+          );
+          row[symbol] = item ? parseFloat(item.lot).toFixed(2) : "";
+        });
+        return row;
+      });
+
+      // Total row (All Login)
+      const total = { login: "All Login" };
+      uniqueSymbols.forEach(symbol => {
+        const sum = raw
+          .filter(x => x.symbol === symbol)
+          .reduce((a, b) => a + parseFloat(b.lot), 0);
+
+        total[symbol] = sum ? sum.toFixed(2) : "";
+      });
+
+      setTotalRow(total);
+      setMatrix(table);
+      setLoading(false);
+
+    } catch (err) {
+      console.error(err);
+      setLoading(false);
+    }
+  };
+
+  const totalPages = Math.ceil(matrix.length / pageSize);
+  const paginated = matrix.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  const getHeatColor = (value) => {
+    if (!value || isNaN(value)) return "";
+    const num = parseFloat(value);
+    if (num > 0) return "bg-green-50 text-green-700 font-semibold";
+    if (num < 0) return "bg-red-50 text-red-700 font-semibold";
+    return "text-gray-700";
+  };
+
+  return (
+    <div className="p-8">
+
+      {/* Title */}
+      <h2 className="text-3xl font-extrabold mb-6 flex items-center gap-3">
+        <span>📊</span> 
+        <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          Login vs Symbol Matrix – Net Lot
+        </span>
+      </h2>
+
+      {loading ? (
+        <div className="text-center py-10 text-lg animate-pulse text-gray-500">
+          Loading data...
+        </div>
+      ) : (
+        <div className="
+          rounded-2xl border border-white/20 shadow-2xl 
+          backdrop-blur-xl bg-white/50 overflow-hidden
+        ">
+
+          {/* Scrollable table */}
+          <div className="overflow-auto max-h-[75vh]">
+            <table className="min-w-max w-full border-collapse">
+
+              {/* HEADER */}
+              <thead className="sticky top-0 z-30 shadow bg-gradient-to-r from-gray-100 to-gray-200">
+                <tr>
+                  <th className="border px-4 py-3 text-left sticky left-0 bg-gradient-to-r from-gray-100 to-gray-200 z-20 font-semibold">
+                    Login
+                  </th>
+                  {symbols.map(symbol => (
+                    <th
+                      key={symbol}
+                      className="border px-3 py-2 text-center"
+                    >
+                      <span className="px-2 py-1 rounded-full bg-gray-800 text-white text-xs shadow">
+                        {symbol}
+                      </span>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+
+              <tbody>
+
+                {/* TOTAL ROW */}
+                <tr className="bg-blue-50 font-bold">
+                  <td className="border px-4 py-2 sticky left-0 bg-blue-100 text-blue-700">
+                    All Login
+                  </td>
+                  {symbols.map(symbol => (
+                    <td key={symbol} className="border px-3 py-2 text-center">
+                      {totalRow[symbol]}
+                    </td>
+                  ))}
+                </tr>
+
+                {/* PAGINATED ROWS */}
+                {paginated.map((row, idx) => (
+                  <tr
+                    key={idx}
+                    className={`transition ${
+                      idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+                    } hover:bg-gray-100`}
+                  >
+                    {/* Sticky Login Column */}
+                    <td className="border px-4 py-2 sticky left-0 bg-white font-medium shadow-sm">
+                      <span className="text-gray-900">{row.login}</span>
+                    </td>
+
+                    {/* Data Cells with Heatmap */}
+                    {symbols.map(symbol => (
+                      <td
+                        key={symbol}
+                        className={`border px-3 py-2 text-center text-sm ${getHeatColor(row[symbol])}`}
+                      >
+                        {row[symbol]}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+
+              </tbody>
+
+            </table>
+          </div>
+
+          {/* PAGINATION AREA */}
+          <div className="flex items-center justify-between p-4 bg-gray-100 border-t">
+
+            <div className="text-sm text-gray-600">
+              Page <b>{currentPage}</b> of <b>{totalPages}</b>
+            </div>
+
+            <div className="flex gap-2">
+
+              {/* PREVIOUS */}
+              <button
+                onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                className={`px-4 py-2 rounded-lg text-sm font-medium shadow-md
+                  ${currentPage === 1 
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
+                    : "bg-white hover:bg-gray-200"}
+                `}
+              >
+                ← Prev
+              </button>
+
+              {/* PAGE NUMBERS */}
+              {[...Array(totalPages)].map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentPage(i + 1)}
+                  className={`
+                    px-3 py-1 rounded-md text-sm font-bold transition 
+                    ${currentPage === i + 1 
+                      ? "bg-blue-600 text-white shadow-md" 
+                      : "bg-white hover:bg-gray-200"}
+                  `}
+                >
+                  {i + 1}
+                </button>
+              ))}
+
+              {/* NEXT */}
+              <button
+                onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+                className={`px-4 py-2 rounded-lg text-sm font-medium shadow-md
+                  ${currentPage === totalPages
+                    ? "bg-gray-300 text-gray-400 cursor-not-allowed"
+                    : "bg-white hover:bg-gray-200"}
+                `}
+              >
+                Next →
+              </button>
+
+            </div>
+          </div>
+
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default MatrixLot;

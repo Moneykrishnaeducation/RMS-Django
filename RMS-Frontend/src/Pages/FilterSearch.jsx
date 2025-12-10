@@ -11,6 +11,10 @@ const FilterSearch = () => {
   const [nameFilter, setNameFilter] = useState("All");
   const [groupFilter, setGroupFilter] = useState("All");
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 10;
+
   useEffect(() => {
     const fetchAccounts = async () => {
       setLoading(true);
@@ -19,14 +23,10 @@ const FilterSearch = () => {
         if (response.data && response.data.accounts) {
           if (Array.isArray(response.data.accounts)) {
             setData(response.data.accounts);
-          } else if (typeof response.data.accounts === 'object') {
-            setData(Object.values(response.data.accounts));
           } else {
-            console.error('accounts is not array or object');
-            setData([]);
+            setData(Object.values(response.data.accounts));
           }
         } else {
-          console.error('API returned invalid data');
           setData([]);
         }
       } catch (error) {
@@ -58,6 +58,35 @@ const FilterSearch = () => {
     return rows;
   }, [data, accountType, loginFilter, nameFilter, groupFilter, isReal]);
 
+  // Reset to page 1 whenever filters change
+  useEffect(() => setCurrentPage(1), [accountType, loginFilter, nameFilter, groupFilter]);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+  const indexOfLast = currentPage * rowsPerPage;
+  const indexOfFirst = indexOfLast - rowsPerPage;
+  const currentRows = filteredRows.slice(indexOfFirst, indexOfLast);
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) setCurrentPage(page);
+  };
+
+  const paginationNumbers = () => {
+    const pages = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 4) pages.push("...");
+      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+        pages.push(i);
+      }
+      if (currentPage < totalPages - 3) pages.push("...");
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+
   if (loading) {
     return (
       <div className="p-6 bg-gray-100 min-h-screen flex items-center justify-center">
@@ -83,7 +112,6 @@ const FilterSearch = () => {
       {/* Account Type Selector */}
       <div className="mb-6">
         <label className="font-semibold text-gray-800 block mb-2">Select Account Type</label>
-
         <div className="flex gap-6">
           {["Real Account", "Demo Account"].map((type) => (
             <label key={type} className="flex items-center gap-2 cursor-pointer text-gray-700">
@@ -169,7 +197,7 @@ const FilterSearch = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredRows.map((row, i) => (
+            {currentRows.map((row, i) => (
               <tr key={i} className="border-b hover:bg-gray-100 transition">
                 <td className="p-3">{row.login}</td>
                 <td className="p-3">{row.name}</td>
@@ -185,8 +213,59 @@ const FilterSearch = () => {
         </table>
       </div>
 
+      {/* Pagination */}
+      <div className="flex justify-between items-center mt-4">
+        <div className="flex space-x-2">
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="px-3 py-1 rounded-md border bg-white hover:bg-gray-100 disabled:opacity-50"
+          >
+            Prev
+          </button>
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 rounded-md border bg-white hover:bg-gray-100 disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+
+        <div className="flex space-x-1">
+          {paginationNumbers().map((page, idx) =>
+            page === "..." ? (
+              <span key={idx} className="px-3 py-1 text-gray-500">...</span>
+            ) : (
+              <button
+                key={idx}
+                onClick={() => handlePageChange(page)}
+                className={`px-3 py-1 rounded-md border ${
+                  currentPage === page
+                    ? "bg-indigo-600 text-white border-indigo-600"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+                }`}
+              >
+                {page}
+              </button>
+            )
+          )}
+        </div>
+
+        <select
+          className="border px-2 py-1 rounded-md"
+          value={currentPage}
+          onChange={(e) => handlePageChange(Number(e.target.value))}
+        >
+          {Array.from({ length: totalPages }, (_, i) => (
+            <option key={i + 1} value={i + 1}>
+              Page {i + 1}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 };
 
-export default FilterSearch
+export default FilterSearch;

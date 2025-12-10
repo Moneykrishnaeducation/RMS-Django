@@ -9,19 +9,39 @@ const NetLot = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // --------------------------------------------------
-  // FETCH + NORMALIZE
-  // --------------------------------------------------
+  // ===========================
+  // GROUP UNIQUE SYMBOLS
+  // ===========================
+  const groupBySymbol = (rows) => {
+    const map = {};
+
+    rows.forEach((item) => {
+      const sym = item.symbol || "";
+
+      if (!map[sym]) {
+        map[sym] = {
+          symbol: sym,
+          volume: item.volume || 0,
+          profit: item.profit || 0,
+        };
+      } else {
+        map[sym].volume += item.volume || 0;
+        map[sym].profit += item.profit || 0;
+      }
+    });
+
+    return Object.values(map);
+  };
+
+  // ===========================
+  // FETCH + NORMALIZE DATA
+  // ===========================
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-
       try {
         const res = await axios.get(volume_API);
 
-        console.log("RAW API DATA:", res.data);
-
-        // Flexible extraction (handles any backend format)
         let rows =
           Array.isArray(res.data)
             ? res.data
@@ -33,39 +53,34 @@ const NetLot = () => {
             ? res.data.positions
             : [];
 
-        console.log("ROWS:", rows);
-
-        // Normalize safely
-        const df = rows.map((item) => {
-          const symbol =
+        // Normalize data for all formats
+        const df = rows.map((item) => ({
+          symbol:
             item.symbol ||
             item.Symbol ||
+            item.SYMBOL ||
             item.symbol_name ||
             item?.position?.symbol ||
-            "";
-
-          const volume =
+            "",
+          volume:
             Number(item.volume) ||
             Number(item.Volume) ||
             Number(item.lots) ||
             Number(item?.position?.volume) ||
-            0;
-
-          const profit =
+            0,
+          profit:
             Number(item.profit) ||
             Number(item.Profit) ||
             Number(item.pnl) ||
             Number(item?.position?.profit) ||
-            0;
+            0,
+        }));
 
-          return { symbol: String(symbol), volume, profit };
-        });
+        // UNIQUE SYMBOL GROUPING
+        const grouped = groupBySymbol(df);
 
-        console.log("FINAL NORMALIZED:", df);
-        console.log("TOTAL SYMBOLS:", df.length);
-
-        setData(df);
-        setFilteredData(df);
+        setData(grouped);
+        setFilteredData(grouped);
       } catch (err) {
         console.error("Fetch error:", err);
         setData([]);
@@ -80,9 +95,9 @@ const NetLot = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // --------------------------------------------------
-  // FILTER LOGIC
-  // --------------------------------------------------
+  // ===========================
+  // SEARCH FILTER
+  // ===========================
   useEffect(() => {
     const term = searchTerm.trim().toLowerCase();
 
@@ -95,27 +110,26 @@ const NetLot = () => {
       d.symbol.toLowerCase().includes(term)
     );
 
-    console.log("FILTERED RESULT:", filtered);
     setFilteredData(filtered);
   }, [searchTerm, data]);
 
-  // --------------------------------------------------
+  // ===========================
   // TOTALS
-  // --------------------------------------------------
+  // ===========================
   const totals = useMemo(() => {
     if (!filteredData.length)
       return { totalSymbols: 0, totalNetLot: 0, totalUSDPL: 0 };
 
     return {
       totalSymbols: filteredData.length,
-      totalNetLot: filteredData.reduce((sum, d) => sum + d.volume, 0),
-      totalUSDPL: filteredData.reduce((sum, d) => sum + d.profit, 0),
+      totalNetLot: filteredData.reduce((sum, d) => sum + Number(d.volume), 0),
+      totalUSDPL: filteredData.reduce((sum, d) => sum + Number(d.profit), 0),
     };
   }, [filteredData]);
 
-  // --------------------------------------------------
+  // ===========================
   // CSV DOWNLOAD
-  // --------------------------------------------------
+  // ===========================
   const downloadCSV = () => {
     if (!filteredData.length) return;
 
@@ -126,15 +140,16 @@ const NetLot = () => {
 
     const blob = new Blob([header + rows], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
-
     const a = document.createElement("a");
+
     a.href = url;
     a.download = "net_lot_data.csv";
     a.click();
+
     window.URL.revokeObjectURL(url);
   };
 
-  if (loading) return <p className="p-6 text-lg">Loading...</p>;
+  if (loading) return <p className="p-6">Loading...</p>;
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
@@ -142,7 +157,7 @@ const NetLot = () => {
         📊 Net Lot Dashboard
       </h1>
 
-      {/* Summary Cards */}
+      {/* Totals */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-white shadow p-4 border text-center rounded-lg">
           <p className="text-gray-500">Total Symbols</p>
