@@ -5,6 +5,127 @@ from django.views.decorators.http import require_http_methods
 import json
 from .MT5Service import MT5Service
 
+from django.http import JsonResponse
+from django.core.management import call_command
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from django.utils import timezone
+import threading
+
+from .models import Accounts, OpenPositions
+from datetime import datetime
+from django.utils import timezone
+
+def normalize_date(date_value):
+    """Ensure date_value is a valid datetime object."""
+    if date_value is None:
+        return timezone.now()
+    elif isinstance(date_value, str):
+        try:
+            # If the date ends with 'Z', replace it with '+00:00' (for UTC time)
+            if date_value.endswith('Z'):
+                date_value = date_value[:-1] + '+00:00'  # Convert 'Z' to UTC offset
+            return datetime.fromisoformat(date_value)
+        except Exception as e:
+            print(f"Error parsing date {date_value}: {e}. Returning current time.")
+            return timezone.now()
+    elif isinstance(date_value, datetime):
+        return date_value
+    else:
+        return timezone.now()
+
+def sync_positions_for_account(account):
+    """Fetch and store positions for a single account."""
+    svc = MT5Service()
+    login_id = account.login
+
+    try:
+        positions = svc.get_open_positions(login_id)
+        existing_positions = set(
+            OpenPositions.objects.filter(login=account)
+            .values_list('position_id', flat=True)
+        )
+        fetched_positions = set()
+
+        for pos in positions:
+            pos_id = pos.get("id")
+            if not pos_id:
+                continue
+
+            symbol = pos.get("symbol")
+            volume = pos.get("volume")
+            price = pos.get("price")
+            position_type = pos.get("type")
+
+            if any(v is None for v in [symbol, volume, price, position_type]):
+                continue
+
+            fetched_positions.add(pos_id)
+
+            OpenPositions.objects.update_or_create(
+                login=account,
+                position_id=pos_id,
+                defaults={
+                    "symbol": symbol,
+                    "volume": volume,
+                    "price": price,
+                    "profit": pos.get("profit") or 0,
+                    "position_type": position_type,
+                    "date_created": normalize_date(pos.get("date")),
+                },
+            )
+
+        # Delete closed positions
+        to_delete = existing_positions - fetched_positions
+        if to_delete:
+            OpenPositions.objects.filter(login=account, position_id__in=to_delete).delete()
+
+    except Exception as e:
+        print(f"Error syncing account {login_id}: {e}")
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def sync_all_open_positions(request):
+    """Start background sync for all accounts."""
+    accounts = Accounts.objects.all()
+
+    # Run the sync in a background thread
+    thread = threading.Thread(
+        target=lambda: [sync_positions_for_account(a) for a in accounts]
+    )
+    thread.start()
+
+    # Immediately return response
+    return JsonResponse(
+        {"status": "success", "message": "Sync started in background"}, status=200
+    )
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_open_positions_from_db(request):
+    """Fetch open positions from the database."""
+    try:
+        # Fetch open positions from the database
+        positions = OpenPositions.objects.all().values(
+            'login__login', 'position_id', 'symbol', 'volume', 'price', 'profit', 'position_type', 'date_created', 'last_updated'
+        )
+        
+        # Return the data as JSON
+        return JsonResponse({'positions': list(positions)}, safe=False)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+def sync_mt5_data(request):
+    try:
+        call_command("sync_mt5")   # or the exact name of your command file
+        return JsonResponse({"message": "Sync started successfully"})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
 def index(request):
     """Render the main index page."""
     return render(request, 'index.html')
@@ -41,11 +162,198 @@ def get_account_details(request, login_id):
 @csrf_exempt
 @require_http_methods(["GET"])
 def get_open_positions(request, login_id):
-    """Get open positions for a specific login ID."""
+    """Get open positions for a specific login ID from MT5 and store in DB."""
     try:
         svc = MT5Service()
         positions = svc.get_open_positions(login_id)
-        return JsonResponse({'positions': positions}, safe=False)
+        print(f"Fetched {len(positions)} positions from MT5 for login {login_id}")
+        print(f"Positions data: {positions}")
+        # Store positions in database
+        from .models import Accounts, OpenPositions
+        from django.utils import timezone
+        account = Accounts.objects.get(login=login_id)
+        # Get current positions in DB for this login
+        existing_positions = set(OpenPositions.objects.filter(login=account).values_list('position_id', flat=True))
+        fetched_positions = set()
+        stored_count = 0
+        for pos in positions:
+            pos_id = pos.get('id')
+            if pos_id is None:
+                print(f"Warning: Position missing 'id' field: {pos}")
+                continue
+            # Skip if required fields are None
+            symbol = pos.get('symbol')
+            volume = pos.get('volume')
+            price = pos.get('price')
+            position_type = pos.get('type')
+            if symbol is None or volume is None or price is None or position_type is None:
+                print(f"Warning: Position {pos_id} has None values for required fields: symbol={symbol}, volume={volume}, price={price}, type={position_type}")
+                continue
+            fetched_positions.add(pos_id)
+            try:
+                obj, created = OpenPositions.objects.update_or_create(
+                    login=account,
+                    position_id=pos_id,
+                    defaults={
+                        'symbol': symbol,
+                        'volume': volume,
+                        'price': price,
+                        'profit': pos.get('profit') or 0,
+                        'position_type': position_type,
+                        'date_created': pos.get('date') or timezone.now(),
+                    }
+                )
+                stored_count += 1
+                print(f"Stored position {pos_id}: created={created}")
+            except Exception as e:
+                print(f"Error storing position {pos_id}: {e}")
+                continue
+        # Delete positions that are no longer open
+        to_delete = existing_positions - fetched_positions
+        if to_delete:
+            deleted_count = OpenPositions.objects.filter(login=account, position_id__in=to_delete).delete()[0]
+            print(f"Deleted {deleted_count} closed positions")
+        print(f"Successfully stored {stored_count} positions for login {login_id}")
+        return JsonResponse({'positions': positions, 'stored': True, 'stored_count': stored_count}, safe=False)
+    except Exception as e:
+        print(f"Error in get_open_positions: {e}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def fetch_all_open_positions(request):
+    """Fetch all open positions from MT5 for all login IDs and store/update in DB."""
+    try:
+        svc = MT5Service()
+        from .models import Accounts, OpenPositions
+        from django.utils import timezone
+        login_ids = Accounts.objects.values_list('login', flat=True)
+        all_positions = []
+        stored_count = 0
+        for login_id in login_ids:
+            positions = svc.get_open_positions(login_id)
+            account = Accounts.objects.get(login=login_id)
+            # Get current positions in DB for this login
+            existing_positions = set(OpenPositions.objects.filter(login=account).values_list('position_id', flat=True))
+            fetched_positions = set()
+            for pos in positions:
+                pos_id = pos.get('id')
+                if pos_id is None:
+                    continue
+                # Skip if required fields are None
+                symbol = pos.get('symbol')
+                volume = pos.get('volume')
+                price = pos.get('price')
+                position_type = pos.get('type')
+                if symbol is None or volume is None or price is None or position_type is None:
+                    continue
+                fetched_positions.add(pos_id)
+                OpenPositions.objects.update_or_create(
+                    login=account,
+                    position_id=pos_id,
+                    defaults={
+                        'symbol': symbol,
+                        'volume': volume,
+                        'price': price,
+                        'profit': pos.get('profit') or 0,
+                        'position_type': position_type,
+                        'date_created': pos.get('date') or timezone.now(),
+                    }
+                )
+                stored_count += 1
+            # Delete positions that are no longer open
+            to_delete = existing_positions - fetched_positions
+            OpenPositions.objects.filter(login=account, position_id__in=to_delete).delete()
+            all_positions.extend(positions)
+        return JsonResponse({'positions': all_positions, 'stored_count': stored_count}, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_open_positions_from_db(request, login_id=None):
+    """Get open positions from DB after updating with fresh MT5 data, optionally filtered by login_id."""
+    try:
+        svc = MT5Service()
+        from .models import Accounts, OpenPositions
+        from django.utils import timezone
+        if login_id:
+            # Update DB for specific login_id
+            positions = svc.get_open_positions(login_id)
+            account = Accounts.objects.get(login=login_id)
+            existing_positions = set(OpenPositions.objects.filter(login=account).values_list('position_id', flat=True))
+            fetched_positions = set()
+            for pos in positions:
+                pos_id = pos.get('id')
+                if pos_id is None:
+                    continue
+                # Skip if required fields are None
+                symbol = pos.get('symbol')
+                volume = pos.get('volume')
+                price = pos.get('price')
+                position_type = pos.get('type')
+                if symbol is None or volume is None or price is None or position_type is None:
+                    continue
+                fetched_positions.add(pos_id)
+                OpenPositions.objects.update_or_create(
+                    login=account,
+                    position_id=pos_id,
+                    defaults={
+                        'symbol': symbol,
+                        'volume': volume,
+                        'price': price,
+                        'profit': pos.get('profit') or 0,
+                        'position_type': position_type,
+                        'date_created': pos.get('date') or timezone.now(),
+                    }
+                )
+            # Delete positions that are no longer open
+            to_delete = existing_positions - fetched_positions
+            OpenPositions.objects.filter(login=account, position_id__in=to_delete).delete()
+            # Retrieve updated positions from DB
+            positions = OpenPositions.objects.filter(login__login=login_id).values(
+                'position_id', 'symbol', 'volume', 'price', 'profit', 'position_type', 'date_created', 'last_updated'
+            )
+        else:
+            # Update DB for all login_ids
+            login_ids = Accounts.objects.values_list('login', flat=True)
+            for lid in login_ids:
+                positions = svc.get_open_positions(lid)
+                account = Accounts.objects.get(login=lid)
+                existing_positions = set(OpenPositions.objects.filter(login=account).values_list('position_id', flat=True))
+                fetched_positions = set()
+                for pos in positions:
+                    pos_id = pos.get('id')
+                    if pos_id is None:
+                        continue
+                    # Skip if required fields are None
+                    symbol = pos.get('symbol')
+                    volume = pos.get('volume')
+                    price = pos.get('price')
+                    position_type = pos.get('type')
+                    if symbol is None or volume is None or price is None or position_type is None:
+                        continue
+                    fetched_positions.add(pos_id)
+                    OpenPositions.objects.update_or_create(
+                        login=account,
+                        position_id=pos_id,
+                        defaults={
+                            'symbol': symbol,
+                            'volume': volume,
+                            'price': price,
+                            'profit': pos.get('profit') or 0,
+                            'position_type': position_type,
+                            'date_created': pos.get('date') or timezone.now(),
+                        }
+                    )
+                # Delete positions that are no longer open
+                to_delete = existing_positions - fetched_positions
+                OpenPositions.objects.filter(login=account, position_id__in=to_delete).delete()
+            # Retrieve all updated positions from DB
+            positions = OpenPositions.objects.all().values(
+                'login__login', 'position_id', 'symbol', 'volume', 'price', 'profit', 'position_type', 'date_created', 'last_updated'
+            )
+        return JsonResponse({'positions': list(positions)}, safe=False)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
@@ -63,7 +371,7 @@ def list_accounts(request):
         stored_count = 0
         for acc in accounts:
             try:
-                print(f"Processing account: {acc}")
+                # print(f"Processing account: {acc}")
                 # Convert string dates to datetime if present
                 last_access = None
                 registration = None
@@ -98,7 +406,7 @@ def list_accounts(request):
                     }
                 )
                 stored_count += 1
-                print(f"Stored account {acc['login']}: created={created}")
+                # print(f"Stored account {acc['login']}: created={created}")
             except Exception as e:
                 print(f"Error storing account {acc.get('login')}: {e}")
                 continue
@@ -107,6 +415,8 @@ def list_accounts(request):
     except Exception as e:
         print(f"Error in list_accounts: {e}")
         return JsonResponse({'error': str(e)}, status=500)
+    
+    
 
 @csrf_exempt
 @require_http_methods(["GET"])

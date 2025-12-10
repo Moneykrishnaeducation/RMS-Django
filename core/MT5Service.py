@@ -63,13 +63,25 @@ class MT5Service:
     def __init__(self, host=None, port=None, login=None, password=None, pump_mode=1, timeout=120000):
         # load defaults from .env if not provided
         env = _read_env()
-        host = host or env.get('MT5_HOST', default='188.240.63.221')
-        port = port or env.get('MT5_PORT',default='443')
-        login = login or env.get('MT5_MANAGER_USER',default='1054')
-        password = password or env.get('MT5_MANAGER_PASS',default='8qB!JxHy')
+        host = host or env.get('MT5_HOST')
+        port = port or env.get('MT5_PORT')
+        login = login or env.get('MT5_MANAGER_USER')
+        password = password or env.get('MT5_MANAGER_PASS')
+
+        # If not in env, try to load from database ServerSetting
+        if host is None or port is None or login is None or password is None:
+            try:
+                from core.models import ServerSetting
+                server_setting = ServerSetting.objects.latest('created_at')
+                host = host or server_setting.server_ip.split(':')[0] if ':' in server_setting.server_ip else server_setting.server_ip
+                port = port or (server_setting.server_ip.split(':')[1] if ':' in server_setting.server_ip else '443')
+                login = login or str(server_setting.real_account_login)
+                password = password or server_setting.real_account_password
+            except Exception:
+                pass
 
         if host is None or port is None or login is None or password is None:
-            raise ValueError('MT5 connection parameters missing (host, port, login, password).')
+            raise ValueError('MT5 connection parameters missing (host, port, login, password). Please configure server settings first.')
 
         self.address = f"{host}:{port}"
         try:

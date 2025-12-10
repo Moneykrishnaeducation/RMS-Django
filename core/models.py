@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, connection
 
 class Groups(models.Model):
     Groups = models.CharField(max_length=255, unique=True)
@@ -41,3 +41,53 @@ class ServerSetting(models.Model):
 
     def __str__(self):
         return f"{self.server_name_client} ({self.server_ip})"
+
+class OpenPositions(models.Model):
+    login = models.ForeignKey(Accounts, on_delete=models.CASCADE, related_name='open_positions')
+    position_id = models.BigIntegerField(unique=True)
+    symbol = models.CharField(max_length=50)
+    volume = models.DecimalField(max_digits=10, decimal_places=2)
+    price = models.DecimalField(max_digits=15, decimal_places=5)
+    profit = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    position_type = models.CharField(max_length=10, choices=[('Buy', 'Buy'), ('Sell', 'Sell')])
+    date_created = models.DateTimeField()
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'OpenPositions'
+        app_label = 'core'
+        unique_together = ('login', 'position_id')
+
+    def __str__(self):
+        return f"Position {self.position_id} for {self.login.login}"
+
+    @classmethod
+    def create_table_if_not_exists(cls):
+        with connection.cursor() as cursor:
+            # Create the table if it doesn't exist
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS "OpenPositions" (
+                    "id" serial NOT NULL PRIMARY KEY,
+                    "position_id" bigint NOT NULL UNIQUE,
+                    "symbol" varchar(50) NOT NULL,
+                    "volume" numeric(10, 2) NOT NULL,
+                    "price" numeric(15, 5) NOT NULL,
+                    "profit" numeric(15, 2) NOT NULL DEFAULT 0,
+                    "position_type" varchar(10) NOT NULL,
+                    "date_created" timestamp with time zone NOT NULL,
+                    "last_updated" timestamp with time zone NOT NULL,
+                    "login_id" integer NOT NULL REFERENCES "Accounts" ("id") DEFERRABLE INITIALLY DEFERRED
+                );
+            ''')
+            # Add unique constraint
+            try:
+                cursor.execute('''
+                    ALTER TABLE "OpenPositions" ADD CONSTRAINT "OpenPositions_login_id_position_id_uniq" UNIQUE ("login_id", "position_id");
+                ''')
+            except:
+                pass  # Constraint might already exist
+            # Add index
+            cursor.execute('''
+                CREATE INDEX IF NOT EXISTS "OpenPositions_login_id_idx" ON "OpenPositions" ("login_id");
+            ''')
+            print("OpenPositions table created successfully.")
