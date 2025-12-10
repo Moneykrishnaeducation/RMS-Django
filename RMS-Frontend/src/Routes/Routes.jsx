@@ -14,6 +14,8 @@ import Trend from '../Pages/Trend';
 import MatrixLot from '../Pages/MatrixLot';
 import OpenPosition from '../Pages/OpenPosition';
 import XAUUSD from '../Pages/Xauusd';
+import FileManagement from '../Pages/FileManagement';
+import WatchManager from '../Pages/WatchManager';
 
 const AppRoutes = () => {
   return (
@@ -35,6 +37,9 @@ const AppRoutes = () => {
           <Route path="matrixlot" element={<MatrixLot />} />
           <Route path="openPosistions" element={<OpenPosition />} />
           <Route path="xauusd" element={<XAUUSD />} />
+          <Route path="filemanagement" element={<FileManagement />} />
+          <Route path="watchmanager" element={<WatchManager />} />
+
         </Route>
       </Routes>
     </Router>

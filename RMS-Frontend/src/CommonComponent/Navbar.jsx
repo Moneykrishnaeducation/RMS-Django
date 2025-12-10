@@ -17,6 +17,8 @@ const Navbar = () => {
       <Link to="/matrixlot" className="block py-2 px-4 hover:bg-gray-700 rounded">Matrix Lot</Link>
       <Link to="/openPosistions" className="block py-2 px-4 hover:bg-gray-700 rounded">Open Posistions</Link>
       <Link to="/xauusd" className="block py-2 px-4 hover:bg-gray-700 rounded">XAUUSD</Link>
+      <Link to="/filemanagement" className="block py-2 px-4 hover:bg-gray-700 rounded">File Management</Link>
+      <Link to="/watchmanager" className="block py-2 px-4 hover:bg-gray-700 rounded">Watch Manager</Link>
     </nav>
   );
 };
