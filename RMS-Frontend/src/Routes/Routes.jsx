@@ -5,6 +5,7 @@ import FilterSearch from '../Pages/FilterSearch';
 import Profile from '../Pages/Profile';
 import MainPage from '../CommonComponent/MainPage';
 import Accounts from '../Pages/Accounts';
+import Reports from '../Pages/Reports';
 
 const AppRoutes = () => {
   return (
@@ -17,6 +18,7 @@ const AppRoutes = () => {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="filtersearch" element={<FilterSearch />} />
           <Route path="accounts" element={<Accounts />} />
+          <Route path="reports" element={<Reports />} />
         </Route>
       </Routes>
     </Router>
