@@ -20,6 +20,7 @@ const Navbar = () => {
     { name: "Trend", to: "/trend", icon: <FaChartLine /> },
     { name: "Matrix Lot", to: "/matrixlot", icon: <FaCoins /> },
     { name: "Open Positions", to: "/openPosistions", icon: <FaBoxOpen /> },
+    { name: "Close Positions", to: "/closePosistions", icon: <FaBoxOpen /> },
     { name: "XAUUSD", to: "/xauusd", icon: <FaDollarSign /> },
     { name: "File Management", to: "/filemanagement", icon: <FaFile /> },
     { name: "Watch Manager", to: "/watchmanager", icon: <FaEye /> },
@@ -28,7 +29,8 @@ const Navbar = () => {
   return (
     <nav className="fixed left-0 top-0 h-screen w-64 bg-gray-800 text-white flex flex-col items-start p-4">
       <img src="https://vtindex.com/img/logo/logo.svg" alt="logo" className='mx-auto mb-4'/>
-      {links.map((link) => (
+     <div className='overflow-auto'>
+       {links.map((link) => (
         <Link
           key={link.to}
           to={link.to}
@@ -38,6 +40,7 @@ const Navbar = () => {
           <span>{link.name}</span>
         </Link>
       ))}
+     </div>
     </nav>
   );
 };
