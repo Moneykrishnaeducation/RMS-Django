@@ -19,6 +19,7 @@ const Navbar = () => {
     { name: "Net Lot", to: "/netlot", icon: <FaProjectDiagram /> },
     { name: "Trend", to: "/trend", icon: <FaChartLine /> },
     { name: "Matrix Lot", to: "/matrixlot", icon: <FaCoins /> },
+    { name: "Matrix P&L", to: "/matrixprofitandloss", icon: <FaEye /> },
     { name: "Open Positions", to: "/openPosistions", icon: <FaBoxOpen /> },
     { name: "Close Positions", to: "/closePosistions", icon: <FaBoxOpen /> },
     { name: "XAUUSD", to: "/xauusd", icon: <FaDollarSign /> },

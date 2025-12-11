@@ -12,6 +12,7 @@ import GroupDashboard from '../Pages/GroupDashboard';
 import NetLot from '../Pages/NetLot';
 import Trend from '../Pages/Trend';
 import MatrixLot from '../Pages/MatrixLot';
+import MatrixProfitAndLoss from '../Pages/MatrixProfitAndLoss';
 import OpenPosition from '../Pages/OpenPosition';
 import XAUUSD from '../Pages/Xauusd';
 import FileManagement from '../Pages/FileManagement';
@@ -37,12 +38,15 @@ const AppRoutes = () => {
           <Route path="netlot" element={<NetLot />} />
           <Route path="trend" element={<Trend />} />
           <Route path="matrixlot" element={<MatrixLot />} />
+          <Route path="/matrixprofitandloss" element={<MatrixProfitAndLoss />} />
           <Route path="openPosistions" element={<OpenPosition />} />
           <Route path="xauusd" element={<XAUUSD />} />
           <Route path="filemanagement" element={<FileManagement />} />
           <Route path="watchmanager" element={<WatchManager />} />
           <Route path="symbolPositions" element={<SymbolPositions />} />
           <Route path="closePosistions" element={<SimpleDeals/>} />
+          
+          
         </Route>
       </Routes>
     </Router>
