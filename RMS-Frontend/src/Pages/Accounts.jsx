@@ -110,7 +110,7 @@ const Accounts = () => {
   return (
     <div className="p-10 space-y-12 bg-gray-50 min-h-screen">
       {/* SECTION 1 — Explore Accounts */}
-      <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
+      <div className="bg-white p-8 rounded-2xl shadow-xl border-gray-200">
         <h2 className="text-2xl font-bold text-gray-800 mb-6">
           Explore Accounts
         </h2>
