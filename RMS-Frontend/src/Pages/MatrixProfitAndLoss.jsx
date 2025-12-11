@@ -251,7 +251,7 @@ const MatrixProfitAndLoss = () => {
 
         </div>
       )}
-    </div>
+    </div> 
   );
 };
 
