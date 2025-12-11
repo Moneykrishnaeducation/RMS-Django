@@ -1,8 +1,10 @@
 import React, { useState } from "react";
+import { FaEye, FaEyeSlash } from "react-icons/fa"; // For toggle icons
 
 const WatchManager = () => {
   const [password, setPassword] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // new state
 
   const handleSubmit = () => {
     if (!password.trim()) return;
@@ -12,27 +14,34 @@ const WatchManager = () => {
 
   return (
     <div className="min-h-screen bg-white px-10 py-10">
-
       {/* SECTION TITLE */}
-      
       <h1 className="text-4xl font-bold text-gray-900 mb-10">
         Watch Manager
       </h1>
 
-      
-
       {/* LABEL */}
       <label className="block text-gray-700 font-medium mb-2">Password</label>
 
-      {/* INPUT FIELD (light gray like Streamlit) */}
-      <input
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        placeholder="Enter password"
-        className="w-full py-3 px-4 bg-gray-100 border border-gray-200 rounded-lg
-                   focus:ring-2 focus:ring-blue-400 outline-none mb-4"
-      />
+      {/* INPUT FIELD WITH TOGGLE */}
+      <div className="relative w-full max-w-lg mb-4">
+        <input
+          type={showPassword ? "text" : "password"} // toggle type
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Enter password"
+          className="w-[100%] py-3 px-4 bg-gray-100 border border-gray-200 rounded-lg
+                     focus:ring-2 focus:ring-blue-400 outline-none"
+        />
+
+        {/* SHOW/HIDE BUTTON */}
+        <button
+          type="button"
+          onClick={() => setShowPassword(!showPassword)}
+          className="absolute right-3 top-3 text-gray-600"
+        >
+          {showPassword ? <FaEyeSlash /> : <FaEye />}
+        </button>
+      </div>
 
       {/* SUBMIT BUTTON */}
       <button
