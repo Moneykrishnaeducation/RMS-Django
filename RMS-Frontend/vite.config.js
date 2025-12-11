@@ -4,23 +4,23 @@ import { resolve } from "path";
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  plugins: [react(),tailwindcss()],
+  base: '/static/',
+  plugins: [react(), tailwindcss()],
+
   build: {
-    // Output only .js and .css into static/assets/
     outDir: "../static",
     emptyOutDir: true,
-
-    // Prevent Vite from making assets/css/js folders
-    assetsDir: ".",
+    assetsDir: ".", // keep assets in /static/assets/
 
     rollupOptions: {
       input: resolve(__dirname, "index.html"),
 
       output: {
-        entryFileNames: "./assets/index.js",
-        chunkFileNames: "./assets/index.js",
-        assetFileNames: "./assets/index.[ext]",
+        entryFileNames: "assets/index.js",
+        chunkFileNames: "assets/index.js",
+        assetFileNames: "assets/index.[ext]",
       }
     }
   }
 });
+
