@@ -18,7 +18,6 @@ import XAUUSD from '../Pages/Xauusd';
 import FileManagement from '../Pages/FileManagement';
 import WatchManager from '../Pages/WatchManager';
 import SymbolPositions from '../Pages/SymbolPositions';
-import SimpleDeals from '../Pages/ClosePosition';
 
 const AppRoutes = () => {
   return (
