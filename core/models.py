@@ -91,3 +91,20 @@ class OpenPositions(models.Model):
                 CREATE INDEX IF NOT EXISTS "OpenPositions_login_id_idx" ON "OpenPositions" ("login_id");
             ''')
             print("OpenPositions table created successfully.")
+
+
+class ClosedPositions(models.Model):
+    login = models.ForeignKey(Accounts, on_delete=models.CASCADE, related_name='closed_positions')
+    deal_id = models.BigIntegerField()  # ❗ REMOVE unique=True
+    symbol = models.CharField(max_length=50)
+    volume = models.CharField(max_length=20)
+    price = models.CharField(max_length=20)
+    profit = models.CharField(max_length=20, default='0')
+    position_type = models.CharField(max_length=10, choices=[('Buy', 'Buy'), ('Sell', 'Sell')])
+    date_closed = models.DateTimeField()
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ClosedPositions'
+        app_label = 'core'
+        unique_together = ('login', 'deal_id')

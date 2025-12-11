@@ -104,7 +104,7 @@ const FilterSearch = () => {
   }
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
+    <div className="p-2 md:p-6 bg-gray-100 min-h-screen">
       <h2 className="text-3xl font-bold text-gray-900 mb-4 flex items-center gap-2">
         🔍 Advanced Filter Search
       </h2>

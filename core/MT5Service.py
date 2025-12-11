@@ -7,6 +7,9 @@ from datetime import datetime
 import django
 from django.conf import settings
 
+import logging
+logger = logging.getLogger(__name__)
+
 # Configure Django settings
 if not settings.configured:
     settings.configure(
@@ -440,7 +443,77 @@ class MT5Service:
             elif email and email.lower() in acc_email:
                 results.append(acc)
         return results
-
+    def get_closed_trades(self, login_id, from_date=None, to_date=None, auto_process_commission=False):
+        """
+        Fetch closed trades (deals) for a given MT5 account login_id and date range.
+        Returns a list of deal objects (Action == 2 is usually 'closed').
+        Handles all error cases robustly.
+        
+        Args:
+            login_id: MT5 account login ID
+            from_date: Start date for trade search
+            to_date: End date for trade search  
+            auto_process_commission: If True, automatically process commissions for new closed trades
+                                    DEFAULT: False to prevent duplicate processing
+        """
+        if not self.manager:
+            raise Exception("MT5 Manager not connected")
+        from datetime import datetime, timedelta
+        if to_date is None:
+            to_date = datetime.now()
+        if from_date is None:
+            # Get trades from 7 days ago to future (to catch any missed recent trades)
+            from_date = datetime.now() - timedelta(days=1)
+        
+        # Validate that login_id is numeric before making MT5 call
+        try:
+            numeric_login_id = int(login_id)
+        except (ValueError, TypeError):
+            logger.warning(f"Skipping non-numeric account ID: {login_id}")
+            return []
+            
+        deals = self.manager.DealRequest(numeric_login_id, from_date, to_date)
+        # Debug print removed
+        # Defensive: DealRequest can return False, None, empty list, or a list of deals
+        if deals is False or deals is None:
+            return []
+        if isinstance(deals, bool):
+            return []
+        if not isinstance(deals, (list, tuple)):
+            return []
+        if not deals:
+            return []
+        closed_deals = []
+        for idx, d in enumerate(deals):
+            action = getattr(d, 'Action', None)
+            entry = getattr(d, 'Entry', None)
+            symbol = getattr(d, 'Symbol', None)
+            volume_closed = getattr(d, 'VolumeClosed', 0)
+            deal_id = getattr(d, 'Deal', None)
+            position_id = getattr(d, 'PositionID', None)  # Use PositionID not Position
+            
+            # DEBUG: Log all available attributes for first deal
+            if idx == 0 and auto_process_commission:
+                logger.info(f"🔍 DEBUG: First deal attributes: {[attr for attr in dir(d) if not attr.startswith('_')]}")
+                logger.info(f"🔍 DEBUG: Deal={deal_id}, PositionID={position_id}, Entry={entry}, Action={action}")
+            
+            # Keep original filter for actual closed_deals list - ONLY closing deals (Entry==1)
+            if entry == 1 and symbol and str(symbol).strip() != '' and volume_closed and float(volume_closed) > 0 and action in (0, 1):
+                closed_deals.append(d)
+                logger.debug(f"Added closed deal: Deal={deal_id}, PositionID={position_id}, Entry={entry}")
+        
+        # Auto-process commissions for newly closed trades if requested
+        if auto_process_commission and closed_deals:
+            logger.info(f"Auto-processing commissions for {len(closed_deals)} closed trades for account {login_id}")
+            try:
+                self._auto_process_commissions_for_closed_trades(login_id, closed_deals)
+                logger.info(f"✅ Auto-processing completed for account {login_id}")
+            except Exception as e:
+                logger.error(f"❌ Auto-processing failed for account {login_id}: {str(e)}")
+                # Continue execution even if auto-processing fails
+                pass
+        
+        return closed_deals
 
 if __name__ == '__main__':
     import argparse

@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 
-const LOT_API = "http://127.0.0.1:8000/api/lots/all/";
-const PROFIT_API = "http://127.0.0.1:8000/api/positions/open/";
+const LOT_API = "/api/lots/all/";
+const PROFIT_API = "/api/positions/open/";
 
 const MatrixProfitAndLoss = () => {
   const [matrix, setMatrix] = useState([]);
@@ -138,7 +138,7 @@ const MatrixProfitAndLoss = () => {
             setSearchLogin(e.target.value);
             setCurrentPage(1);
           }}
-          className="w-80 px-4 py-2 rounded-xl border border-gray-300 shadow-sm
+          className="w-full max-w-sm px-4 py-2 rounded-xl border border-gray-300 shadow-sm
             focus:ring-2 focus:ring-green-400 focus:outline-none transition"
         />
       </div>

@@ -5,7 +5,11 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 import json
 from .MT5Service import MT5Service
-
+import os
+from django.http import FileResponse
+from django.conf import settings
+from .MT5Service import MT5Service
+from datetime import datetime, timedelta
 from django.http import JsonResponse
 from django.core.management import call_command
 
@@ -20,9 +24,10 @@ from datetime import datetime
 from django.utils import timezone
 from .models import Accounts, OpenPositions
 from django.db.models import Sum
+from .models import Accounts, OpenPositions, ClosedPositions
+
 
 from datetime import datetime, timezone
-
 def normalize_date(date_value):
     """Ensure date_value is a valid datetime object."""
     if date_value is None:
@@ -50,9 +55,9 @@ def normalize_date(date_value):
     else:
         # If it's any other type, return the current time
         print(f"Unexpected date type: {type(date_value)}. Returning current time.")
-        return datetime.now(timezone.utc)  # Use datetime.timezone.utc here
-
-
+        return datetime.now(timezone.utc)  # Use datetime.timezone.ut
+    
+    
 @csrf_exempt
 @require_http_methods(["GET"])
 def get_open_positions_from_db(request, login_id=None):
@@ -142,7 +147,50 @@ def get_open_positions_from_db(request, login_id=None):
         return JsonResponse({'error': str(e)}, status=500)
     
 
+  # make sure this import works
 
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def sync_all_closed_positions(request):
+    """
+    Sync closed positions for all accounts via MT5 and store in the DB.
+    Can be triggered via URL.
+    """
+    try:
+        svc = MT5Service()
+        svc.connect()
+
+        accounts = Accounts.objects.all()
+        total_stored = 0
+        from_date = datetime.now() - timedelta(days=30)
+        to_date = datetime.now()
+
+        results = []
+
+        for account in accounts:
+            closed_positions = svc.get_closed_trades(account.login, from_date=from_date, to_date=to_date)
+            stored_count = store_closed_positions(account, closed_positions)
+            total_stored += stored_count
+            results.append({
+                "account": account.login,
+                "fetched": len(closed_positions),
+                "stored": stored_count
+            })
+
+        return JsonResponse({
+            "status": "success",
+            "total_accounts": accounts.count(),
+            "total_stored": total_stored,
+            "details": results
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+    
+    
 @csrf_exempt
 @require_http_methods(["GET"])
 def get_lots_for_account(request, login_id):
@@ -359,9 +407,25 @@ def get_open_positions_from_db(request):
         positions = OpenPositions.objects.all().values(
             'login__login', 'position_id', 'symbol', 'volume', 'price', 'profit', 'position_type', 'date_created', 'last_updated'
         )
-        
+
         # Return the data as JSON
         return JsonResponse({'positions': list(positions)}, safe=False)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_closed_positions_from_db(request):
+    """Fetch closed positions from the database."""
+    try:
+        # Fetch closed positions from the database
+        positions = ClosedPositions.objects.all().values(
+            'login__login', 'deal_id', 'symbol', 'volume', 'price', 'profit', 'position_type', 'date_closed', 'last_updated'
+        )
+
+        # Return the data as JSON
+        return JsonResponse({'closed_positions': list(positions)}, safe=False)
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
@@ -375,8 +439,8 @@ def sync_mt5_data(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 def index(request):
-    """Render the main index page."""
-    return render(request, 'index.html')
+    file_path = os.path.join(settings.BASE_DIR, 'static', 'index.html')
+    return FileResponse(open(file_path, 'rb'))
 
 @csrf_exempt
 @require_http_methods(["GET"])
@@ -618,7 +682,6 @@ def list_accounts(request):
                         'group': acc.get('group'),
                         'leverage': acc.get('leverage'),
                         'balance': acc.get('balance', 0),
-                        'volume': round(acc.get(p, 'Volume', 0) / 10000, 2),
                         'equity': acc.get('equity', 0),
                         'profit': acc.get('profit', 0),
                         'margin': acc.get('margin', 0),
@@ -684,6 +747,218 @@ def get_all_account_details(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
  
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def sync_closed_positions(request, login_id):
+    """Fetch closed positions for a specific login ID from MT5 and store in DB."""
+    try:
+        # Fetch closed positions from MT5
+        svc = MT5Service()
+        closed_positions = svc.list_deals_by_login(login_id)  # Get closed deals from MT5
+        print(f"Fetched {len(closed_positions)} closed positions from MT5 for login {login_id}")
+
+        # Fetch account object from DB
+        account = Accounts.objects.get(login=login_id)
+        stored_count = 0
+
+        for deal in closed_positions:
+            deal_id = deal.get('Deal')
+            if deal_id is None:
+                print(f"Warning: Deal missing 'Deal' field: {deal}")
+                continue
+
+            # Only store closing deals (Entry == 1)
+            entry = deal.get('Entry')
+            if entry != 1:
+                continue
+
+            symbol = deal.get('Symbol')
+            volume = deal.get('Volume')
+            price = deal.get('Price')
+            profit = deal.get('Profit')
+            action = deal.get('Type')
+            position_type = 'Buy' if action == 0 else 'Sell' if action == 1 else None
+            date_closed = deal.get('Time')
+
+            if any(v is None for v in [symbol, volume, price, position_type]):
+                print(f"Warning: Deal {deal_id} has None values for required fields: symbol={symbol}, volume={volume}, price={price}, type={position_type}")
+                continue
+
+            try:
+                # Store the closed position in DB
+                obj, created = ClosedPositions.objects.update_or_create(
+                    login=account,
+                    deal_id=deal_id,
+                    defaults={
+                        'symbol': symbol,
+                        'volume': volume,
+                        'price': price,
+                        'profit': profit or 0,
+                        'position_type': position_type,
+                        'date_closed': normalize_date(date_closed),
+                    }
+                )
+                stored_count += 1
+                print(f"Stored closed position {deal_id}: created={created}")
+            except Exception as e:
+                print(f"Error storing deal {deal_id}: {e}")
+                continue
+
+        print(f"Successfully stored {stored_count} closed positions for login {login_id}")
+        return JsonResponse({'deals': closed_positions, 'stored_count': stored_count}, safe=False)
+
+    except Exception as e:
+        print(f"Error in sync_closed_positions: {e}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def sync_all_close_positions(request):
+    """Start background sync for all closed positions."""
+    # For debugging, run synchronously
+    try:
+        sync_closed_positions_for_all_accounts()
+        return JsonResponse(
+            {"status": "success", "message": "Sync completed synchronously"},
+            status=200
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"status": "error", "message": str(e)},
+            status=500
+        )
+
+
+
+def store_open_positions(account, positions):
+    """Store the open positions for a given account."""
+    stored_count = 0
+    existing_positions = set(OpenPositions.objects.filter(login=account).values_list('position_id', flat=True))
+    fetched_positions = set()
+
+    for pos in positions:
+        pos_id = pos.get("id")
+        if not pos_id:
+            continue
+
+        symbol = pos.get("symbol")
+        volume = pos.get("volume")
+        price = pos.get("price")
+        position_type = pos.get("type")
+
+        if any(v is None for v in [symbol, volume, price, position_type]):
+            continue
+
+        fetched_positions.add(pos_id)
+
+        try:
+            # Store the open position in DB
+            OpenPositions.objects.update_or_create(
+                login=account,
+                position_id=pos_id,
+                defaults={
+                    "symbol": symbol,
+                    "volume": volume,
+                    "price": price,
+                    "profit": pos.get("profit", 0),
+                    "position_type": position_type,
+                    "date_created": normalize_date(pos.get("date"))
+                }
+            )
+            stored_count += 1
+        except Exception as e:
+            print(f"Error storing position {pos_id}: {e}")
+
+    # Delete closed positions that no longer exist
+    to_delete = existing_positions - fetched_positions
+    if to_delete:
+        OpenPositions.objects.filter(login=account, position_id__in=to_delete).delete()
+
+    return stored_count
+
+
+from datetime import datetime, timedelta
+
+def sync_closed_positions_for_all_accounts():
+    print("Starting background sync for closed positions.")
+    try:
+        svc = MT5Service()
+        svc.connect()  # Make sure MT5 Manager is connected
+        accounts = Accounts.objects.all()
+        total_stored = 0
+        from_date = datetime.now() - timedelta(days=30)
+        to_date = datetime.now()
+
+        for account in accounts:
+            login_id = account.login
+            print(f"Processing account {login_id}")
+
+            closed_positions = svc.get_closed_trades(login_id, from_date=from_date, to_date=to_date)
+            print(f"Fetched {len(closed_positions)} closed positions for {login_id}")
+
+            stored_closed_positions = store_closed_positions(account, closed_positions)
+            print(f"Stored {stored_closed_positions} closed positions for {login_id}")
+
+            total_stored += stored_closed_positions
+
+        print(f"Synced {total_stored} closed positions across all accounts.")
+
+    except Exception as e:
+        import traceback
+        print(f"Error in sync_closed_positions_for_all_accounts: {e}")
+        traceback.print_exc()
+
+
+def store_closed_positions(account, deals):
+    """Store the closed positions for a given account."""
+    stored_count = 0
+    existing_deals = set(ClosedPositions.objects.filter(login=account).values_list('deal_id', flat=True))
+    fetched_deals = set()
+
+    for deal in deals:
+        deal_id = getattr(deal, "Deal", None)
+        if not deal_id:
+            continue  # Skip invalid data
+
+        entry = getattr(deal, "Entry", None)
+        if entry != 1:
+            continue
+
+        symbol = getattr(deal, "Symbol", None)
+        volume = getattr(deal, "Volume", getattr(deal, "VolumeClosed", None))
+        price = getattr(deal, "Price", None)
+        profit = getattr(deal, "Profit", 0)
+        action = getattr(deal, "Action", None)
+        position_type = 'Buy' if action == 0 else 'Sell' if action == 1 else None
+        date_closed = getattr(deal, "Time", None)
+
+        if any(v is None for v in [symbol, volume, price, position_type]):
+            print(f"Missing data for deal {deal_id}. Skipping.")
+            continue
+
+        fetched_deals.add(deal_id)
+
+        try:
+            ClosedPositions.objects.update_or_create(
+                login=account,
+                deal_id=deal_id,
+                defaults={
+                    "symbol": symbol,
+                    "volume": str(volume),
+                    "price": str(price),
+                    "profit": str(profit or 0),
+                    "position_type": position_type,
+                    "date_closed": normalize_date(date_closed),
+                }
+            )
+            stored_count += 1
+        except Exception as e:
+            print(f"Error storing deal {deal_id}: {e}")
+
+    return stored_count  # <--- Make sure this line exists!
+
 
 import logging
 from django.utils.decorators import method_decorator

@@ -119,11 +119,11 @@ const OpenPosition = () => {
       </h2>
 
       {/* Filters */}
-      <div className="flex gap-4 mb-4">
+      <div className="flex flex-col sm:flex-row gap-4 mb-4">
         <input
           type="text"
           placeholder="Search Login..."
-          className="border px-3 py-2 rounded w-48"
+          className="border px-3 py-2 rounded w-full sm:w-48"
           value={searchLogin}
           onChange={(e) => {
             setSearchLogin(e.target.value);
@@ -134,7 +134,7 @@ const OpenPosition = () => {
         <input
           type="text"
           placeholder="Search Name..."
-          className="border px-3 py-2 rounded w-64"
+          className="border px-3 py-2 rounded w-full sm:w-64"
           value={searchName}
           onChange={(e) => {
             setSearchName(e.target.value);

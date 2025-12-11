@@ -14,6 +14,8 @@ urlpatterns = [
     path('lots/all/', views.get_all_lots, name='get_all_lots'),# getall the login user's lot
     path('lots/<int:login_id>/', views.get_all_lots_by_login, name='get_all_lots_by_login'),
     path('profile/<int:login_id>/', views.get_user_profile, name='get_user_profile'),
+    path('positions/closed/', views.get_closed_positions_from_db, name='get_closed_positions_from_db'),
+     path('closepositions/sync_all/', views.sync_all_close_positions, name='sync_all_user_data'), #get close position
     # Server settings endpoints
     path('sync/mt5/', views.sync_mt5_data, name='sync_mt5_data'),# Automate sync of all MT5 data to DB
 

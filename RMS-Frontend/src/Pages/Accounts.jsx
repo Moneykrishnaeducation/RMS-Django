@@ -2,12 +2,12 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 
-const API_BASE = "http://127.0.0.1:8000/api";
+const API_BASE = "/api";
 
 // Reusable Table Component (modern UI)
 const Table = ({ columns, data }) => {
   return (
-    <div className="overflow-x-auto shadow-lg rounded-xl border border-gray-200">
+    <div className="overflow-x-auto shadow-lg rounded-xl ">
       <table className="min-w-full">
         <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
           <tr>
@@ -108,15 +108,15 @@ const Accounts = () => {
   if (loading) return <div className="p-10 text-lg font-semibold">Loading...</div>;
 
   return (
-    <div className="p-10 space-y-12 bg-gray-50 min-h-screen">
+    <div className="space-y-12 bg-gray-50 min-h-screen">
       {/* SECTION 1 — Explore Accounts */}
-      <div className="bg-white p-8 rounded-2xl shadow-xl border-gray-200">
+      <div className=" md:p-4 rounded-2xl shadow-xl border-gray-200">
         <h2 className="text-2xl font-bold text-gray-800 mb-6">
           Explore Accounts
         </h2>
 
         {/* FILTER BUTTONS */}
-        <div className="flex space-x-4 mb-6">
+        <div className="flex flex-wrap md:flex-nowrap gap-3 mx-4 mb-6">
           {["demo", "real", "all"].map((type) => (
             <button
               key={type}
@@ -124,11 +124,11 @@ const Accounts = () => {
                 setAccountType(type);
                 setPage(1);
               }}
-              className={`px-6 py-2 rounded-full text-sm font-medium shadow transition-all 
+              className={`px-6 py-2 w-100  rounded-full text-sm font-medium shadow transition-all 
                 ${
                   accountType === type
                     ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    : "bg-gray-300 text-gray-700 hover:bg-gray-300"
                 }`}
             >
               {type === "demo"
@@ -191,7 +191,7 @@ const Accounts = () => {
       </div>
 
       {/* SECTION 2 — Top Accounts */}
-      <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
+      <div className="md:p-8 rounded-2xl shadow-xl ">
         <h2 className="text-2xl font-bold text-gray-800 mb-6">Top Accounts</h2>
         <Table
           columns={["login", "name", "group", "equity"]}
@@ -200,7 +200,7 @@ const Accounts = () => {
       </div>
 
       {/* SECTION 3 — Lowest Balance */}
-      <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
+      <div className=" md:p-8 rounded-2xl shadow-xl ">
         <h2 className="text-2xl font-bold text-gray-800 mb-6">Lowest Balance</h2>
         <Table
           columns={["login", "name", "group", "balance"]}

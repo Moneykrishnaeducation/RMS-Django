@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import axios from "axios";
 
-const API_BASE = 'http://127.0.0.1:8000/api'; // Django backend API base
+const API_BASE = '/api'; // Django backend API base
 
 const Dashboard = () => {
   const [data, setData] = useState([]);
@@ -105,13 +105,13 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h2 className="text-3xl font-extrabold mb-8 text-gray-900">
+    <div className="md:p-6 bg-gray-100 min-h-screen">
+      <h2 className="text-3xl text-center font-extrabold mb-8 text-gray-900">
         📊 RMS — Accounts Dashboard
       </h2>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4 mb-10">
+      <div className=" p-6 md:p-0 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4 mb-10">
         {cardStats.map((item, i) => (
           <div key={i} className="bg-gradient-to-br from-indigo-700 to-purple-700 rounded-xl text-white p-4 shadow-lg">
             <p className="text-xs opacity-70">{item.label}</p>
@@ -158,8 +158,8 @@ export default Dashboard;
 /* ---------- Reusable UI Components ---------- */
 
 const Section = ({ title, children }) => (
-  <div className="mb-10">
-    <h3 className="text-xl font-bold mb-3 text-gray-800">{title}</h3>
+  <div className="mb-10 mx-1">
+    <h3 className="text-xl font-bold m-3 text-gray-800">{title}</h3>
     {children}
   </div>
 );
