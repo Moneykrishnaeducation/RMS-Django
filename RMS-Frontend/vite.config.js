@@ -17,9 +17,9 @@ export default defineConfig({
       input: resolve(__dirname, "index.html"),
 
       output: {
-        entryFileNames: "assets/index.js",
-        chunkFileNames: "assets/index.js",
-        assetFileNames: "assets/index.[ext]",
+        entryFileNames: "./assets/index.js",
+        chunkFileNames: "./assets/index.js",
+        assetFileNames: "./assets/index.[ext]",
       }
     }
   }
