@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import axios from "axios";
 
-const API_BASE = 'http://127.0.0.1:8000/api'; // Django backend API base
+const API_BASE = '/api'; // Django backend API base
 
 const FilterSearch = () => {
   const [data, setData] = useState([]);
@@ -238,24 +238,6 @@ const FilterSearch = () => {
           </button>
         </div>
 
-        <div className="flex space-x-1">
-          {paginationNumbers().map((page, idx) =>
-            page === "..." ? (
-              <span key={idx} className="px-3 py-1 text-gray-500">...</span>
-            ) : (
-              <button
-                key={idx}
-                onClick={() => handlePageChange(page)}
-                className={`px-3 py-1 rounded-md border ${currentPage === page
-                    ? "bg-indigo-600 text-white border-indigo-600"
-                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-                  }`}
-              >
-                {page}
-              </button>
-            )
-          )}
-        </div>
 
         <select
           className="border px-2 py-1 rounded-md"
