@@ -48,12 +48,17 @@ const FilterSearch = () => {
 
   const filteredRows = useMemo(() => {
     let rows = data.filter(row =>
-      accountType === "Real Account" ? isReal(row.group) : isDemo(row.group)
+      accountType === "Real Acc ount" ? isReal(row.group) : isDemo(row.group)
     );
 
-    if (loginFilter !== "All") rows = rows.filter(r => r.login === loginFilter);
-    if (nameFilter !== "All") rows = rows.filter(r => r.name === nameFilter);
-    if (groupFilter !== "All") rows = rows.filter(r => r.group === groupFilter);
+    if (loginFilter !== "All")
+      rows = rows.filter(r => r.login === Number(loginFilter));
+
+    if (nameFilter !== "All")
+      rows = rows.filter(r => r.name === nameFilter);
+
+    if (groupFilter !== "All")
+      rows = rows.filter(r => r.group === groupFilter);
 
     return rows;
   }, [data, accountType, loginFilter, nameFilter, groupFilter, isReal]);
@@ -137,11 +142,12 @@ const FilterSearch = () => {
             value={loginFilter}
             onChange={(e) => setLoginFilter(e.target.value)}
           >
-            <option>All</option>
+            <option value="All">All</option>
             {Array.from(new Set(data.map(i => i.login))).map((login, idx) =>
-              <option key={idx}>{login}</option>
+              <option key={idx} value={login}>{login}</option>
             )}
           </select>
+
         </div>
 
         {/* Name Filter */}
@@ -182,9 +188,9 @@ const FilterSearch = () => {
       </p>
 
       {/* Table */}
-      <div className="overflow-x-auto bg-white rounded-lg shadow border">
+      <div className="overflow-x-auto bg-white rounded-lg shadow">
         <table className="min-w-full text-sm text-gray-800">
-          <thead className="bg-indigo-700 text-white">
+          <thead className="bg-indigo-600 text-white">
             <tr>
               <th className="p-3 text-left">Login</th>
               <th className="p-3 text-left">Name</th>
@@ -198,7 +204,7 @@ const FilterSearch = () => {
           </thead>
           <tbody>
             {currentRows.map((row, i) => (
-              <tr key={i} className="border-b hover:bg-gray-100 transition">
+              <tr key={i} className="border-b border-gray-200 hover:bg-gray-100 transition">
                 <td className="p-3">{row.login}</td>
                 <td className="p-3">{row.name}</td>
                 <td className="p-3">{row.email}</td>
@@ -240,11 +246,10 @@ const FilterSearch = () => {
               <button
                 key={idx}
                 onClick={() => handlePageChange(page)}
-                className={`px-3 py-1 rounded-md border ${
-                  currentPage === page
+                className={`px-3 py-1 rounded-md border ${currentPage === page
                     ? "bg-indigo-600 text-white border-indigo-600"
                     : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-                }`}
+                  }`}
               >
                 {page}
               </button>

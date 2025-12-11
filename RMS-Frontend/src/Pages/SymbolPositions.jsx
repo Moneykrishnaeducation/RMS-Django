@@ -76,7 +76,7 @@ const SymbolPositions = () => {
         Group: account.group || "Unknown",
         BaseSymbol: selectedSymbol,
         NetLot: info.netLot,
-        Type: info.netLot > 0 ? "Buy" : info.netLot < 0 ? "Sell" : "Neutral",
+        Type: info.netLot > 0 ? "Buy" : info.netLot < 0 ? "Sell" : "-",
         Profit: parseFloat(account.profit) || 0,
       };
     });
