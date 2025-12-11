@@ -85,14 +85,14 @@ const Groups = () => {
 
       {/* Data Table */}
       {filteredData.length ? (
-        <div className="bg-white shadow rounded-lg p-4 border border-gray-200 overflow-x-auto">
-          <table className="w-full table-auto border-collapse">
-            <thead className="bg-gray-50">
+        <div className="bg-white shadow rounded-lg overflow-x-auto">
+          <table className="w-full table-auto ">
+            <thead className="bg-indigo-600 text-white uppercase text-sm ">
               <tr>
                 {["Login", "Name", "Profit", "Balance", "Equity"].map((header) => (
                   <th
                     key={header}
-                    className="p-3 border-b text-left text-gray-600 font-medium"
+                    className="p-3 border-b text-left text-white font-medium"
                   >
                     {header}
                   </th>
@@ -101,12 +101,12 @@ const Groups = () => {
             </thead>
             <tbody>
               {filteredData.map((row, idx) => (
-                <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                  <td className="p-2 border">{row.login || "-"}</td>
-                  <td className="p-2 border">{row.name || "-"}</td>
-                  <td className="p-2 border">{Number(row.profit || 0).toFixed(2)}</td>
-                  <td className="p-2 border">{Number(row.balance || 0).toFixed(2)}</td>
-                  <td className="p-2 border">{Number(row.equity || 0).toFixed(2)}</td>
+                <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                  <td className="p-2">{row.login || "-"}</td>
+                  <td className="p-2">{row.name || "-"}</td>
+                  <td className="p-2">{Number(row.profit || 0).toFixed(2)}</td>
+                  <td className="p-2">{Number(row.balance || 0).toFixed(2)}</td>
+                  <td className="p-2">{Number(row.equity || 0).toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>

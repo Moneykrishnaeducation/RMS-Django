@@ -121,30 +121,29 @@ const GroupDashboard = () => {
       </div>
 
       {/* Group Summary Table */}
-      <div className="bg-white shadow rounded-lg p-4 border overflow-x-auto">
-        <h2 className="text-xl font-semibold mb-4">📌 Group Summary Table</h2>
-        <table className="w-full table-auto border-collapse">
+      <div className="bg-white shadow rounded-lg overflow-x-auto">
+        <table className="w-full table-auto ">
           <thead>
-            <tr className="bg-gray-100 text-gray-600 uppercase text-sm">
-              <th className="p-3 border">Group</th>
-              <th className="p-3 border">Accounts</th>
-              <th className="p-3 border">Open Positions</th>
-              <th className="p-3 border">Total Net Lot</th>
-              <th className="p-3 border">Total USD P&L</th>
-              <th className="p-3 border">Avg Net Lot</th>
-              <th className="p-3 border">Avg USD P&L</th>
+            <tr className="bg-indigo-600 text-white uppercase text-sm ">
+              <th className="p-3">Group</th>
+              <th className="p-3">Accounts</th>
+              <th className="p-3">Open Positions</th>
+              <th className="p-3">Total Net Lot</th>
+              <th className="p-3">Total USD P&L</th>
+              <th className="p-3">Avg Net Lot</th>
+              <th className="p-3">Avg USD P&L</th>
             </tr>
           </thead>
           <tbody>
             {groupSummary.map((g) => (
-              <tr key={g.group} className="hover:bg-gray-50 transition-colors">
-                <td className="p-2 border font-medium">{g.group}</td>
-                <td className="p-2 border text-center">{g.accounts}</td>
-                <td className="p-2 border text-center">{g.open_positions}</td>
-                <td className="p-2 border text-center">{g.total_volume.toFixed(2)}</td>
-                <td className="p-2 border text-center">${g.total_usd_pl.toFixed(2)}</td>
-                <td className="p-2 border text-center">{g.accounts ? (g.total_volume / g.accounts).toFixed(2) : 0}</td>
-                <td className="p-2 border text-center">{g.accounts ? (g.total_usd_pl / g.accounts).toFixed(2) : 0}</td>
+              <tr key={g.group} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                <td className="p-2 font-medium">{g.group}</td>
+                <td className="p-2 text-center">{g.accounts}</td>
+                <td className="p-2 text-center">{g.open_positions}</td>
+                <td className="p-2 text-center">{g.total_volume.toFixed(2)}</td>
+                <td className="p-2 text-center">${g.total_usd_pl.toFixed(2)}</td>
+                <td className="p-2 text-center">{g.accounts ? (g.total_volume / g.accounts).toFixed(2) : 0}</td>
+                <td className="p-2 text-center">{g.accounts ? (g.total_usd_pl / g.accounts).toFixed(2) : 0}</td>
               </tr>
             ))}
           </tbody>

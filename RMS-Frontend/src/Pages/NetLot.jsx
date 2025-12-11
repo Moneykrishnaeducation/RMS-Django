@@ -159,19 +159,19 @@ const NetLot = () => {
 
       {/* Totals */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white shadow p-4 border text-center rounded-lg">
+        <div className="bg-white shadow-lg p-5 inset-shodow-lg text-center rounded-lg">
           <p className="text-gray-500">Total Symbols</p>
           <p className="text-2xl font-bold">{totals.totalSymbols}</p>
         </div>
 
-        <div className="bg-white shadow p-4 border text-center rounded-lg">
+        <div className="bg-white shadow-lg p-5 text-center rounded-lg">
           <p className="text-gray-500">Total Net Lot</p>
           <p className="text-2xl font-bold text-blue-600">
             {totals.totalNetLot.toFixed(2)}
           </p>
         </div>
 
-        <div className="bg-white shadow p-4 border text-center rounded-lg">
+        <div className="bg-white shadow-lg p-5 text-center rounded-lg">
           <p className="text-gray-500">Total USD P&L</p>
           <p className="text-2xl font-bold text-green-600">
             ${totals.totalUSDPL.toFixed(2)}
@@ -184,7 +184,8 @@ const NetLot = () => {
         <input
           type="text"
           placeholder="Search symbol..."
-          className="border px-3 py-2 rounded w-1/2"
+          className="w-80 px-4 py-2 rounded-xl border border-gray-300 shadow-sm
+            focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -198,25 +199,24 @@ const NetLot = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white shadow rounded-lg p-4 border overflow-x-auto">
-        <table className="w-full table-auto border-collapse">
+      <div className="bg-white shadow rounded-lg overflow-x-auto">
+        <table className="w-full table-auto">
           <thead>
-            <tr className="bg-gray-100 text-gray-600 uppercase text-sm">
-              <th className="p-3 border">Symbol</th>
-              <th className="p-3 border">Net Lot</th>
-              <th className="p-3 border">USD P&L</th>
-            </tr>
-          </thead>
+            <tr className="bg-indigo-700 text-white uppercase text-sm">
+              <th className="p-3">Symbol</th>
+              <th className="p-3">Net Lot</th>
+              <th className="p-3">USD P&L</th>
+            </tr>     </thead>
 
           <tbody>
             {filteredData.length ? (
               filteredData.map((d, idx) => (
-                <tr key={idx} className="hover:bg-gray-50 text-gray-700">
-                  <td className="p-2 border">{d.symbol}</td>
-                  <td className="p-2 border text-center">
+                <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                  <td className="p-2 ">{d.symbol}</td>
+                  <td className="p-2  text-center">
                     {d.volume.toFixed(2)}
                   </td>
-                  <td className="p-2 border text-center">
+                  <td className="p-2 text-center">
                     {d.profit.toFixed(2)}
                   </td>
                 </tr>

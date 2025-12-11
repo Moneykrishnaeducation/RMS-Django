@@ -167,7 +167,7 @@ const Section = ({ title, children }) => (
 const Table = ({ headers, rows }) => (
   <div className="overflow-x-auto bg-white rounded-lg shadow">
     <table className="min-w-full">
-      <thead className="bg-gray-900 text-white">
+      <thead className="bg-indigo-600 text-white">
         <tr>
           {headers.map((h, i) => (
             <th key={i} className="p-3 text-sm font-semibold text-left">{h}</th>
@@ -176,7 +176,7 @@ const Table = ({ headers, rows }) => (
       </thead>
       <tbody>
         {rows.map((r, i) => (
-          <tr key={i} className="border-b hover:bg-gray-100 transition">
+          <tr key={i} className="border-b border-gray-200 hover:bg-gray-100 transition">
             {r.map((c, j) => (
               <td key={j} className="p-3 text-sm">{c}</td>
             ))}

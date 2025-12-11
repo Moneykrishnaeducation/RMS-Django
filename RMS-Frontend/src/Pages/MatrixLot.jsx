@@ -105,7 +105,7 @@ const MatrixLot = () => {
           }}
           className="
             w-80 px-4 py-2 rounded-xl border border-gray-300 shadow-sm
-            focus:ring-2 focus:ring-blue-400 focus:border-blue-500
+            focus:ring-2 focus:ring-blue-400 focus:outline-none transition
           "
         />
       </div>
@@ -121,16 +121,16 @@ const MatrixLot = () => {
         ">
 
           <div className="overflow-auto max-h-[75vh]">
-            <table className="min-w-max w-full border-collapse">
+            <table className="w-full table-auto">
 
-              <thead className="sticky top-0 z-30 shadow bg-gradient-to-r from-gray-100 to-gray-200">
+              <thead className="bg-indigo-600 text-white uppercase text-sm">
                 <tr>
-                  <th className="border px-4 py-3 text-left sticky left-0 bg-gradient-to-r from-gray-100 to-gray-200 z-20 font-semibold">
+                  <th className="bg-indigo-600 text-white uppercase text-sm">
                     Login
                   </th>
                   {symbols.map(symbol => (
-                    <th key={symbol} className="border px-3 py-2 text-center">
-                      <span className="px-2 py-1 rounded-full bg-gray-800 text-white text-xs shadow">
+                    <th key={symbol} className="px-3 py-2 text-center">
+                      <span className="p-1 px-5 rounded-full bg-gray-800 text-white text-xs shadow">
                         {symbol}
                       </span>
                     </th>
@@ -141,12 +141,12 @@ const MatrixLot = () => {
               <tbody>
 
                 {/* TOTAL ROW */}
-                <tr className="bg-blue-50 font-bold">
-                  <td className="border px-4 py-2 sticky left-0 bg-blue-100 text-blue-700">
+                <tr className="bg-blue-50 font-bold border-b border-gray-400">
+                  <td className="hover:bg-gray-50 text-center transition-colors">
                     All Login
                   </td>
                   {symbols.map(symbol => (
-                    <td key={symbol} className="border px-3 py-2 text-center">
+                    <td key={symbol} className="px-3 border-b border-gray-400 py-2 text-center">
                       {totalRow[symbol]}
                     </td>
                   ))}
@@ -160,14 +160,14 @@ const MatrixLot = () => {
                       idx % 2 === 0 ? "bg-white" : "bg-gray-50"
                     } hover:bg-gray-100`}
                   >
-                    <td className="border px-4 py-2 sticky left-0 bg-white font-medium shadow-sm">
+                    <td className="rounded-lg px-4 border-b text-center border-gray-400 py-2 sticky left-0 bg-white font-medium shadow-sm">
                       {row.login}
                     </td>
 
                     {symbols.map(symbol => (
                       <td
                         key={symbol}
-                        className={`border px-3 py-2 text-center text-sm ${getHeatColor(row[symbol])}`}
+                        className={`px-3 py-2 text-center text-sm border-b border-gray-400 ${getHeatColor(row[symbol])}`}
                       >
                         {row[symbol]}
                       </td>

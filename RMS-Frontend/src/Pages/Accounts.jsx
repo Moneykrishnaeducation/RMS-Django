@@ -23,7 +23,7 @@ const Table = ({ columns, data }) => {
           {data.map((row, idx) => (
             <tr
               key={idx}
-              className="hover:bg-blue-50 transition-all border-b last:border-none"
+              className="hover:bg-blue-50 transition-all border-b border-gray-200 last:border-none"
             >
               {columns.map((col) => (
                 <td key={col} className="px-4 py-3 text-sm text-gray-700">
