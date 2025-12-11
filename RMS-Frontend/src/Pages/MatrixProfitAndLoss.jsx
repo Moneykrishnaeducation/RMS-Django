@@ -62,7 +62,7 @@ const MatrixProfitAndLoss = () => {
           // Odd index → PROFIT  
           const symbolIndex = uniqueSymbols.indexOf(symbol);
 
-          row[symbol] = symbolIndex % 2 === 0 ? lot : profit;
+          row[symbol] = profit;
         });
 
         return row;
@@ -124,8 +124,8 @@ const MatrixProfitAndLoss = () => {
 
       <h2 className="text-3xl font-extrabold mb-6 flex items-center gap-3">
         <span>💹</span>
-        <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-          Login vs Symbol Matrix – Alternate LOT / PROFIT
+        <span className="bg-gradient-to-r from-indigo-600 to-teal-600 bg-clip-text text-transparent">
+          Login vs Symbol Matrix –  PROFIT & LOSS
         </span>
       </h2>
 
@@ -151,10 +151,10 @@ const MatrixProfitAndLoss = () => {
         <div className="rounded-2xl border border-white/20 shadow-2xl 
             backdrop-blur-xl bg-white/50 overflow-hidden">
 
-          <div className="overflow-auto max-h-[75vh]">
+          <div className="overflow-auto max-h-[75vh] overflow-x-auto">
             <table className="w-full table-auto">
 
-              <thead className="bg-teal-600 text-white uppercase text-sm">
+              <thead className="bg-indigo-500 text-white uppercase text-sm">
                 <tr>
                   <th className="px-4 py-2">Login</th>
                   {symbols.map(symbol => (
@@ -169,7 +169,7 @@ const MatrixProfitAndLoss = () => {
 
               <tbody>
 
-                <tr className="bg-green-50 font-bold border-b border-gray-400">
+                <tr className="bg-green-50 font-bold border-gray-200">
                   <td className="text-center">All Login</td>
                   {symbols.map(symbol => (
                     <td key={symbol} className="px-3 py-2 text-center">
@@ -185,7 +185,7 @@ const MatrixProfitAndLoss = () => {
                       idx % 2 === 0 ? "bg-white" : "bg-gray-50"
                     } hover:bg-gray-100`}
                   >
-                    <td className="px-4 py-2 text-center border-b font-medium">
+                    <td className="px-4 py-2 text-center border-b border-gray-300 font-medium">
                       {row.login}
                     </td>
 

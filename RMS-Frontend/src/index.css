@@ -3,6 +3,12 @@
 body {
   font-family: "Poppins", sans-serif;
 }
-::-webkit-scrollbar{
-  display: none;
+/* Hide scrollbar but still scrollable */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* for Chrome, Safari, Edge */
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* for Internet Explorer and Edge */
+  scrollbar-width: none;     /* for Firefox */
 }

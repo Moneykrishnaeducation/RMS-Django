@@ -44,7 +44,6 @@ const AppRoutes = () => {
           <Route path="filemanagement" element={<FileManagement />} />
           <Route path="watchmanager" element={<WatchManager />} />
           <Route path="symbolPositions" element={<SymbolPositions />} />
-          <Route path="closePosistions" element={<SimpleDeals/>} />
           
           
         </Route>

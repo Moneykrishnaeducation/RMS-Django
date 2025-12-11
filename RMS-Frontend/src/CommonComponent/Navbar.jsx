@@ -21,30 +21,32 @@ const Navbar = () => {
     { name: "Matrix Lot", to: "/matrixlot", icon: <FaCoins /> },
     { name: "Matrix P&L", to: "/matrixprofitandloss", icon: <FaEye /> },
     { name: "Open Positions", to: "/openPosistions", icon: <FaBoxOpen /> },
-    { name: "Close Positions", to: "/closePosistions", icon: <FaBoxOpen /> },
     { name: "XAUUSD", to: "/xauusd", icon: <FaDollarSign /> },
     { name: "File Management", to: "/filemanagement", icon: <FaFile /> },
     { name: "Watch Manager", to: "/watchmanager", icon: <FaEye /> },
   ];
 
   return (
-    <nav className="fixed left-0 top-0 h-screen w-65 bg-gray-800 text-white flex flex-col items-start p-4">
-      <img src="https://vtindex.com/img/logo/logo.svg" alt="logo" className='mx-auto mb-4'/>
-     <div className='overflow-auto'>
-       {links.map((link) => (
-        <Link
-          key={link.to}
-          to={link.to}
-          className="block py-2 px-4 mb-2 flex items-center gap-2 rounded
-                       text-white hover:text-yellow-500 
-                       hover:bg-gray-700 hover:shadow-md transition-all duration-200"
-        >
-          <span className='text-yellow-500 text-xl'>{link.icon}</span>
-          <span>{link.name}</span>
-        </Link>
-      ))}
-     </div>
-    </nav>
+  <nav className="fixed left-0 top-0 h-screen w-65 bg-gray-800 text-white flex flex-col items-start p-4">
+  <img src="https://vtindex.com/img/logo/logo.svg" alt="logo" className='mx-auto mb-4'/>
+
+  {/* Scrollable links container */}
+  <div className='overflow-auto scrollbar-hide flex-1 w-full'>
+    {links.map((link) => (
+      <Link
+        key={link.to}
+        to={link.to}
+        className="block py-2 px-4 mb-2 flex items-center gap-2 rounded
+                   text-white hover:text-yellow-500 
+                   hover:bg-gray-700 hover:shadow-md transition-all duration-200"
+      >
+        <span className='text-yellow-500 text-xl'>{link.icon}</span>
+        <span>{link.name}</span>
+      </Link>
+    ))}
+  </div>
+</nav>
+
   );
 };
 
