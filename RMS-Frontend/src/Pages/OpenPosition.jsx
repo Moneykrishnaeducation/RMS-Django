@@ -166,13 +166,13 @@ const OpenPosition = () => {
       {/* Table */}
       <div className="overflow-x-auto shadow-lg rounded-lg border border-gray-200">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+          <thead className="bg-indigo-700 text-white">
             <tr>
               {["Login", "Name", "Group", "Base Symbol", "Net Lot", "USD P&L"].map(
                 (header) => (
                   <th
                     key={header}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    className="px-7 py-4 text-left"
                   >
                     {header}
                   </th>

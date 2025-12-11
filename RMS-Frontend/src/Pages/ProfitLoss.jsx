@@ -140,15 +140,15 @@ const ProfitLoss = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white shadow rounded-lg p-4 mb-6 border border-gray-200 overflow-x-auto">
+      <div className="bg-white shadow rounded-lg mb-6 border border-gray-200 overflow-x-auto">
         <table className="w-full table-auto border-collapse">
-          <thead className="bg-gray-50">
+          <thead className="bg-indigo-600 text-white">
             <tr>
               {["Login", "Name", "Group", "Profit", "Balance", "Equity"].map(
                 (header) => (
                   <th
                     key={header}
-                    className="p-3 border-b text-left text-gray-600 font-medium"
+                    className="p-3 border-b text-left"
                   >
                     {header}
                   </th>
@@ -158,19 +158,19 @@ const ProfitLoss = () => {
           </thead>
           <tbody>
             {paginatedData.map((row, idx) => (
-              <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                <td className="p-2 border">{row.login || "-"}</td>
-                <td className="p-2 border">{row.name || "-"}</td>
-                <td className="p-2 border">{row.group || "-"}</td>
+              <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                <td className="p-2">{row.login || "-"}</td>
+                <td className="p-2">{row.name || "-"}</td>
+                <td className="p-2">{row.group || "-"}</td>
                 <td
-                  className={`p-2 border 
+                  className={`p-2  
                     Number(row.profit) < 0 ? "text-red-500" : "text-green-500"
                   }`}
                 >
                   {Number(row.profit || 0).toFixed(2)}
                 </td>
-                <td className="p-2 border">{Number(row.balance || 0).toFixed(2)}</td>
-                <td className="p-2 border">{Number(row.equity || 0).toFixed(2)}</td>
+                <td className="p-2">{Number(row.balance || 0).toFixed(2)}</td>
+                <td className="p-2">{Number(row.equity || 0).toFixed(2)}</td>
               </tr>
             ))}
           </tbody>

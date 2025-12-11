@@ -99,25 +99,25 @@ const Reports = () => {
         <div className="overflow-x-auto rounded-lg">
           <table className="w-full border-collapse text-md">
             <thead>
-              <tr className="bg-gray-100 text-gray-600 uppercase text-xl tracking-wider">
-                <th className="p-3 border">Group</th>
-                <th className="p-3 border">Count</th>
-                <th className="p-3 border">Balance (Sum)</th>
-                <th className="p-3 border">Equity (Sum)</th>
+              <tr className="bg-indigo-600 text-white  tracking-wider">
+                <th className="p-3">Group</th>
+                <th className="p-3">Count</th>
+                <th className="p-3">Balance (Sum)</th>
+                <th className="p-3">Equity (Sum)</th>
               </tr>
             </thead>
             <tbody>
               {groupTable.map((g, idx) => (
                 <tr
                   key={idx}
-                  className="hover:bg-gray-50 transition-colors text-gray-700"
+                  className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
                 >
-                  <td className="p-3 border font-medium">{g.group}</td>
-                  <td className="p-3 border text-center">{g.count}</td>
-                  <td className="p-3 border text-blue-600 font-semibold">
+                  <td className="p-3 font-medium">{g.group}</td>
+                  <td className="p-3 text-center">{g.count}</td>
+                  <td className="p-3 text-blue-600 font-semibold">
                     {g.balance_sum.toFixed(2)}
                   </td>
-                  <td className="p-3 border text-green-600 font-semibold">
+                  <td className="p-3 text-green-600 font-semibold">
                     {g.equity_sum.toFixed(2)}
                   </td>
                 </tr>

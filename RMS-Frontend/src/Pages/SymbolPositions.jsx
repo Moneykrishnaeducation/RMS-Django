@@ -144,7 +144,8 @@ const SymbolPositions = () => {
         <input
           type="text"
           placeholder="Search Login..."
-          className="border px-4 py-2 rounded-md w-48 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="w-80 px-4 py-2 rounded-xl border border-gray-300 shadow-sm
+            focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
           value={searchLogin}
           onChange={(e) => {
             setSearchLogin(e.target.value);
@@ -155,7 +156,8 @@ const SymbolPositions = () => {
         <input
           type="text"
           placeholder="Search Name..."
-          className="border px-4 py-2 rounded-md w-64 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="w-80 px-4 py-2 rounded-xl border border-gray-300 shadow-sm
+            focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
           value={searchName}
           onChange={(e) => {
             setSearchName(e.target.value);
@@ -172,13 +174,13 @@ const SymbolPositions = () => {
       ) : (
         <div className="overflow-x-auto rounded-xl shadow-lg border border-gray-200">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-100 sticky top-0 z-10">
+            <thead className="bg-indigo-600 text-white sticky top-0 z-10">
               <tr>
                 {["Login", "Name", "Group", "Base Symbol", "Type", "Net Lot", "USD P&L"].map(
                   (header) => (
                     <th
                       key={header}
-                      className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                      className="px-6 py-3 text-left  font-semibold tracking-wider"
                     >
                       {header}
                     </th>
