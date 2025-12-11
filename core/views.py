@@ -424,8 +424,35 @@ def get_closed_positions_from_db(request):
             'login__login', 'deal_id', 'symbol', 'volume', 'price', 'profit', 'position_type', 'date_closed', 'last_updated'
         )
 
+        # Process the positions to format volume, price, and profit
+        processed_positions = []
+        for pos in positions:
+            processed_pos = pos.copy()
+            # Process volume
+            try:
+                volume_val = float(pos['volume']) / 10000
+                processed_pos['volume'] = f"{volume_val:.2f}"
+            except (ValueError, TypeError):
+                processed_pos['volume'] = pos['volume']  # Keep original if conversion fails
+
+            # Process price
+            try:
+                price_val = float(pos['price']) / 10000
+                processed_pos['price'] = f"{price_val:.2f}"
+            except (ValueError, TypeError):
+                processed_pos['price'] = pos['price']  # Keep original if conversion fails
+
+            # Process profit
+            try:
+                profit_val = float(pos['profit']) / 10000
+                processed_pos['profit'] = f"{profit_val:.2f}"
+            except (ValueError, TypeError):
+                processed_pos['profit'] = pos['profit']  # Keep original if conversion fails
+
+            processed_positions.append(processed_pos)
+
         # Return the data as JSON
-        return JsonResponse({'closed_positions': list(positions)}, safe=False)
+        return JsonResponse({'closed_positions': processed_positions}, safe=False)
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
