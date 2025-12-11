@@ -87,7 +87,7 @@ const Groups = () => {
       {filteredData.length ? (
         <div className="bg-white shadow rounded-lg overflow-x-auto">
           <table className="w-full table-auto ">
-            <thead className="bg-indigo-600 text-white uppercase text-sm ">
+            <thead className="bg-indigo-600 text-white uppercase ">
               <tr>
                 {["Login", "Name", "Profit", "Balance", "Equity"].map((header) => (
                   <th

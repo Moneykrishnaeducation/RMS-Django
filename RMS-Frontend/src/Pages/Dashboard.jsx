@@ -170,7 +170,7 @@ const Table = ({ headers, rows }) => (
       <thead className="bg-indigo-600 text-white">
         <tr>
           {headers.map((h, i) => (
-            <th key={i} className="p-3 text-sm font-semibold text-left">{h}</th>
+            <th key={i} className="p-3 text-sm font-semibold text-left uppercase">{h}</th>
           ))}
         </tr>
       </thead>

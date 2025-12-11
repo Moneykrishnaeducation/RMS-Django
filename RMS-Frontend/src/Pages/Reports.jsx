@@ -99,7 +99,7 @@ const Reports = () => {
         <div className="overflow-x-auto rounded-lg">
           <table className="w-full border-collapse text-md">
             <thead>
-              <tr className="bg-indigo-600 text-white  tracking-wider">
+              <tr className="bg-indigo-600 text-white uppercase text-sm tracking-wider">
                 <th className="p-3">Group</th>
                 <th className="p-3">Count</th>
                 <th className="p-3">Balance (Sum)</th>

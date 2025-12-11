@@ -21,7 +21,7 @@ const SimpleDeals = () => {
       <h2 className="text-xl font-semibold mb-4">Closed Deals</h2>
 
       <table className="w-full border shadow-lg rounded-lg">
-        <thead className="bg-gray-100">
+        <thead className="bg-gray-100 uppercase">
           <tr>
             <th className="p-3 border">Symbol</th>
             <th className="p-3 border">Profit</th>

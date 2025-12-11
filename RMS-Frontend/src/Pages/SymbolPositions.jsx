@@ -174,7 +174,7 @@ const SymbolPositions = () => {
       ) : (
         <div className="overflow-x-auto rounded-xl shadow-lg border border-gray-200">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-indigo-600 text-white sticky top-0 z-10">
+            <thead className="bg-indigo-600 text-white sticky top-0 z-10 uppercase text-sm">
               <tr>
                 {["Login", "Name", "Group", "Base Symbol", "Type", "Net Lot", "USD P&L"].map(
                   (header) => (

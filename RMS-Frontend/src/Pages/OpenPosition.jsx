@@ -166,7 +166,7 @@ const OpenPosition = () => {
       {/* Table */}
       <div className="overflow-x-auto shadow-lg rounded-lg border border-gray-200">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-indigo-700 text-white">
+          <thead className="bg-indigo-700 text-white uppercase text-sm">
             <tr>
               {["Login", "Name", "Group", "Base Symbol", "Net Lot", "USD P&L"].map(
                 (header) => (

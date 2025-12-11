@@ -124,7 +124,7 @@ const GroupDashboard = () => {
       <div className="bg-white shadow rounded-lg overflow-x-auto">
         <table className="w-full table-auto ">
           <thead>
-            <tr className="bg-indigo-600 text-white uppercase text-sm ">
+            <tr className="bg-indigo-600 text-white uppercase text-sm">
               <th className="p-3">Group</th>
               <th className="p-3">Accounts</th>
               <th className="p-3">Open Positions</th>

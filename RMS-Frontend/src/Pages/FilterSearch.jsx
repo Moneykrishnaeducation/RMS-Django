@@ -190,7 +190,7 @@ const FilterSearch = () => {
       {/* Table */}
       <div className="overflow-x-auto bg-white rounded-lg shadow">
         <table className="min-w-full text-sm text-gray-800">
-          <thead className="bg-indigo-600 text-white">
+          <thead className="bg-indigo-600 text-white uppercase">
             <tr>
               <th className="p-3 text-left">Login</th>
               <th className="p-3 text-left">Name</th>

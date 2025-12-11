@@ -142,7 +142,7 @@ const ProfitLoss = () => {
       {/* Table */}
       <div className="bg-white shadow rounded-lg mb-6 border border-gray-200 overflow-x-auto">
         <table className="w-full table-auto border-collapse">
-          <thead className="bg-indigo-600 text-white">
+          <thead className="bg-indigo-600 text-white uppercase text-sm">
             <tr>
               {["Login", "Name", "Group", "Profit", "Balance", "Equity"].map(
                 (header) => (
