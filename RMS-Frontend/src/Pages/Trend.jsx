@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const API_URL = "http://127.0.0.1:8000/api/lots/all/";
+const API_URL = "/api/lots/all/";
 
 const Trend = () => {
   const [chartData, setChartData] = useState([]);

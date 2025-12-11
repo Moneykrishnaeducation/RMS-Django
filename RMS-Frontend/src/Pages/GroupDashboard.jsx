@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 
-const ACCOUNTS_API = "http://127.0.0.1:8000/api/accounts/db/";
-const POSITIONS_API = "http://127.0.0.1:8000/api/positions/open/";
+const ACCOUNTS_API = "/api/accounts/db/";
+const POSITIONS_API = "/api/positions/open/";
 
 const GroupDashboard = () => {
   const [accounts, setAccounts] = useState([]);

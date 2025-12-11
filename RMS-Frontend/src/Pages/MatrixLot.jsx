@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 
-const API_URL = "http://127.0.0.1:8000/api/lots/all/";
+const API_URL = "/api/lots/all/";
 
 const MatrixLot = () => {
   const [matrix, setMatrix] = useState([]);

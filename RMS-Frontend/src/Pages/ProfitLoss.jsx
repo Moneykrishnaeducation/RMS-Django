@@ -11,7 +11,7 @@ import {
 } from "recharts";
 
 // Make sure the endpoint is correct and includes the trailing slash
-const API_BASE = "http://127.0.0.1:8000/api/accounts/db/";
+const API_BASE = "/api/accounts/db/";
 
 const ProfitLoss = () => {
   const [data, setData] = useState([]);

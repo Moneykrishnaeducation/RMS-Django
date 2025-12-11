@@ -21,9 +21,9 @@ const XAUUSDPositions = () => {
       setLoading(true);
       try {
         const posRes = await axios.get(
-          "http://127.0.0.1:8000/api/positions/open/"
+          "/api/positions/open/"
         );
-        const accRes = await axios.get("http://127.0.0.1:8000/api/accounts/db/");
+        const accRes = await axios.get("/api/accounts/db/");
 
         const posData = posRes.data?.positions || [];
         const accData = accRes.data?.accounts || [];

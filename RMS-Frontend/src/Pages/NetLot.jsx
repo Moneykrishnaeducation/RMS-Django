@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 
-const volume_API = "http://127.0.0.1:8000/api/positions/open/";
+const volume_API = "/api/positions/open/";
 
 const NetLot = () => {
   const [data, setData] = useState([]);

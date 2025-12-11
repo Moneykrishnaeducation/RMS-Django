@@ -18,8 +18,8 @@ const OpenPosition = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const posRes = await axios.get("http://127.0.0.1:8000/api/positions/open");
-        const accRes = await axios.get("http://127.0.0.1:8000/api/accounts/db");
+        const posRes = await axios.get("/api/positions/open");
+        const accRes = await axios.get("/api/accounts/db");
 
         setPositions(posRes.data.positions);
         setAccounts(accRes.data.accounts);

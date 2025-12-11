@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-const API_BASE = "http://127.0.0.1:8000/api/accounts/db/"; // make sure this returns your accounts data
+const API_BASE = "/api/accounts/db/"; // make sure this returns your accounts data
 
 const Groups = () => {
   const [data, setData] = useState([]);

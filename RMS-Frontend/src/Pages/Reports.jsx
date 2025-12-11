@@ -10,7 +10,7 @@ import {
   CartesianGrid,
 } from "recharts";
 
-const API_BASE = "http://127.0.0.1:8000/api/accounts/db";
+const API_BASE = "/api/accounts/db";
 
 const Reports = () => {
   const [data, setData] = useState([]);
@@ -64,42 +64,52 @@ const Reports = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 p-2 sm:p-6">
 
       {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold tracking-tight text-gray-800">📊 Reports Dashboard</h1>
-        <p className="text-gray-600 mt-1">Group statistics & account insights</p>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-4xl font-bold tracking-tight text-gray-800">
+          📊 Reports Dashboard
+        </h1>
+        <p className="text-gray-600 mt-1 text-sm sm:text-base">
+          Group statistics & account insights
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
-        {/* Summary Cards */}
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
-          <p className="text-gray-500 text-sm">Total Accounts</p>
-          <p className="text-3xl font-semibold text-gray-800 mt-1">{data.length}</p>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 mb-8">
+        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border border-gray-200">
+          <p className="text-gray-500 text-xs sm:text-sm">Total Accounts</p>
+          <p className="text-2xl sm:text-3xl font-semibold text-gray-800 mt-1">
+            {data.length}
+          </p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
-          <p className="text-gray-500 text-sm">Total Groups</p>
-          <p className="text-3xl font-semibold text-gray-800 mt-1">{groupTable.length}</p>
+        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border border-gray-200">
+          <p className="text-gray-500 text-xs sm:text-sm">Total Groups</p>
+          <p className="text-2xl sm:text-3xl font-semibold text-gray-800 mt-1">
+            {groupTable.length}
+          </p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
-          <p className="text-gray-500 text-sm">Largest Group</p>
-          <p className="text-3xl font-semibold text-gray-800 mt-1">
+        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border border-gray-200">
+          <p className="text-gray-500 text-xs sm:text-sm">Largest Group</p>
+          <p className="text-2xl sm:text-3xl font-semibold text-gray-800 mt-1">
             {groupTable[0]?.group || "—"}
           </p>
         </div>
       </div>
 
       {/* Group Table */}
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-200">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">📁 Group Report Summary</h2>
+      <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-8 border border-gray-200">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">
+          📁 Group Report Summary
+        </h2>
 
-        <div className="overflow-x-auto rounded-lg">
-          <table className="w-full border-collapse text-md">
+        <div className="overflow-x-auto rounded-lg w-full">
+          <table className="min-w-full text-sm sm:text-md">
             <thead>
-              <tr className="bg-indigo-600 text-white uppercase text-sm tracking-wider">
+              <tr className="bg-indigo-600 text-white uppercase text-xs sm:text-sm tracking-wider">
                 <th className="p-3">Group</th>
                 <th className="p-3">Count</th>
                 <th className="p-3">Balance (Sum)</th>
@@ -128,36 +138,43 @@ const Reports = () => {
       </div>
 
       {/* Chart Section */}
-      <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 mb-10">
-        <h2 className="text-2xl font-semibold text-gray-800 mb-6">📈 Group Count Chart</h2>
+<div className="bg-white rounded-xl shadow-lg  border-gray-200 mb-10">
+  <h2 className="text-xl font-semibold text-gray-800 mb-4 sm:mb-6">
+    📈 Group Count Chart
+  </h2>
 
-        <div className="w-full h-[400px] min-w-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={groupTable}
-              margin={{ top: 20, right: 20, left: 10, bottom: 80 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="group"
-                interval={0}
-                angle={-45}
-                textAnchor="end"
-                height={100}
-              />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="count" fill="#3b82f6" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+  {/* MOBILE HORIZONTAL SCROLL */}
+  <div className="w-full overflow-x-auto">
+    <div className="min-w-[900px] h-[300px] sm:min-w-0 sm:h-[400px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart
+          data={groupTable}
+          margin={{ top: 20, right: 20, left: 10, bottom: 80 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis
+            dataKey="group"
+            interval={0}
+            angle={-45}
+            textAnchor="end"
+            height={100}
+            tick={{ fontSize: 10 }}
+          />
+          <YAxis tick={{ fontSize: 12 }} />
+          <Tooltip />
+          <Bar dataKey="count" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  </div>
+</div>
+
 
       {/* Download Button */}
-      <div className="text-right mt-4">
+      <div className="text-center sm:text-right mt-4">
         <button
           onClick={downloadCSV}
-          className="bg-blue-600 hover:bg-blue-700 transition text-white px-6 py-3 rounded-lg font-medium shadow-md"
+          className="bg-blue-600 hover:bg-blue-700 transition text-white px-5 py-3 rounded-lg font-medium shadow-md w-full sm:w-auto"
         >
           ⬇️ Download CSV
         </button>

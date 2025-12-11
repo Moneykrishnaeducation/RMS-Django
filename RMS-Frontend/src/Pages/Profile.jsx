@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const API_BASE = 'http://127.0.0.1:8000/api'; // Assuming the Django backend API base
+const API_BASE = '/api'; // Assuming the Django backend API base
 
 const Profile = () => {
   const [loginId, setLoginId] = useState('');
