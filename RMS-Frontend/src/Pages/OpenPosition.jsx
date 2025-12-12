@@ -13,18 +13,20 @@ const OpenPosition = () => {
   const [searchName, setSearchName] = useState("");
 
   // -------------------------
-  // FETCH BOTH APIs
-  // -------------------------
+// FETCH BOTH APIs
+// -------------------------
   useEffect(() => {
     const fetchData = async () => {
       try {
         const posRes = await axios.get("/api/positions/open");
         const accRes = await axios.get("/api/accounts/db");
 
-        setPositions(posRes.data.positions);
-        setAccounts(accRes.data.accounts);
+        setPositions(Array.isArray(posRes.data.positions) ? posRes.data.positions : []);
+        setAccounts(Array.isArray(accRes.data.accounts) ? accRes.data.accounts : []);
       } catch (err) {
         console.error(err);
+        setPositions([]);
+        setAccounts([]);
       }
     };
     fetchData();
