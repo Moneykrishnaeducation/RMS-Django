@@ -265,35 +265,61 @@ def sync_positions_for_account(account):
     except Exception as e:
         print(f"Error syncing account {login_id}: {e}")
 
-@csrf_exempt  # Only use if necessary, consider removing for production
+@csrf_exempt  # Only use if necessary; remove in production
 @require_http_methods(["GET"])
 def get_all_lots(request):
-    """Fetch and calculate the total 'lot' (volume) for each symbol for all accounts."""
+    """
+    Fetch total lot (volume) per symbol for each account,
+    combining OpenPositions + ClosedPositions.
+    """
     try:
-        # Fetch and aggregate all positions for all accounts in one query
-        lot_data = (
+        # ----- OPEN POSITIONS -----
+        open_data = (
             OpenPositions.objects
-            .values('login__login', 'symbol')  # Group by account login and symbol
-            .annotate(total_volume=Sum('volume'))  # Sum the volume for each group
-            .order_by('login__login', 'symbol')  # Order results by login and symbol
+            .values('login__login', 'symbol')
+            .annotate(total_open=Sum('volume'))
         )
 
-        # Prepare the response data
-        all_lots = [
-            {
-                "login_id": item['login__login'],  # Use the login_id
-                "symbol": item['symbol'],
-                "lot": item['total_volume']
-            }
-            for item in lot_data
-        ]
+        # Convert to dictionary for easy merging
+        open_dict = {
+            (item['login__login'], item['symbol']): item['total_open']
+            for item in open_data
+        }
 
-        # Return the data as a JSON response
-        return JsonResponse({"data": all_lots}, safe=False)
+        # ----- CLOSED POSITIONS -----
+        closed_data = (
+            ClosedPositions.objects
+            .values('login__login', 'symbol')
+            .annotate(total_closed=Sum('volume'))
+        )
+
+        closed_dict = {
+            (item['login__login'], item['symbol']): item['total_closed']
+            for item in closed_data
+        }
+
+        # ----- MERGE BOTH -----
+        combined_keys = set(open_dict.keys()) | set(closed_dict.keys())
+
+        all_lots = []
+        for key in combined_keys:
+            login, symbol = key
+            total_open = open_dict.get(key, 0)
+            total_closed = closed_dict.get(key, 0)
+
+            all_lots.append({
+                "login_id": login,
+                "symbol": symbol,
+                "open_lot": total_open,
+                "closed_lot": total_closed,
+                "net_lot": total_open + total_closed
+            })
+
+        return JsonResponse({"data": all_lots})
 
     except Exception as e:
-        # You can log the exception here for debugging purposes
         return JsonResponse({"error": str(e)}, status=500)
+
 
 @csrf_exempt  # Only use if necessary, consider removing for production
 @require_http_methods(["GET"])
@@ -941,19 +967,19 @@ def sync_closed_positions_for_all_accounts():
 def store_closed_positions(account, deals):
     """Store the closed positions for a given account."""
     stored_count = 0
-    existing_deals = set(ClosedPositions.objects.filter(login=account).values_list('deal_id', flat=True))
-    fetched_deals = set()
 
     for deal in deals:
+        position_id = getattr(deal, "PositionID", None)  # <-- Unique per account
         deal_id = getattr(deal, "Deal", None)
-        if not deal_id:
-            continue  # Skip invalid data
+        if not position_id:
+            continue  # Skip if PositionID missing
 
         entry = getattr(deal, "Entry", None)
         if entry != 1:
             continue
 
         symbol = getattr(deal, "Symbol", None)
+        volume= round(getattr(deal, 'Volume', 0) / 10000, 2)
         volume = getattr(deal, "Volume", getattr(deal, "VolumeClosed", None))
         price = getattr(deal, "Price", None)
         profit = getattr(deal, "Profit", 0)
@@ -961,17 +987,16 @@ def store_closed_positions(account, deals):
         position_type = 'Buy' if action == 0 else 'Sell' if action == 1 else None
         date_closed = getattr(deal, "Time", None)
 
-        if any(v is None for v in [symbol, volume, price, position_type]):
+        if any(v is None for v in [symbol, volume, price, position_type, position_id]):
             print(f"Missing data for deal {deal_id}. Skipping.")
             continue
-
-        fetched_deals.add(deal_id)
 
         try:
             ClosedPositions.objects.update_or_create(
                 login=account,
-                deal_id=deal_id,
+                position=position_id,  # <-- use position as unique
                 defaults={
+                    "deal_id": deal_id,
                     "symbol": symbol,
                     "volume": str(volume),
                     "price": str(price),
@@ -982,9 +1007,9 @@ def store_closed_positions(account, deals):
             )
             stored_count += 1
         except Exception as e:
-            print(f"Error storing deal {deal_id}: {e}")
+            print(f"Error storing position {position_id}: {e}")
 
-    return stored_count  # <--- Make sure this line exists!
+    return stored_count
 
 
 import logging
