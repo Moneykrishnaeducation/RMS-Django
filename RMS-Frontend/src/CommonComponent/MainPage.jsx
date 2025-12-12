@@ -29,16 +29,16 @@ const MainPage = () => {
       <div className="md:ml-64">
 
         {/* DESKTOP HEADING */}
-        <div className="flex hidden md:block items-center text-center justify-center bg-gray-800 text-white p-4 shadow">
-  <h1
-  className="absolute inset-0 flex items-center justify-center 
-             text-2xl font-extrabold tracking-wide 
-             bg-gradient-to-r from-yellow-300 to-yellow-600 
-             bg-clip-text text-transparent"
->RMS
-</h1>
-
+<div className="hidden md:flex items-center justify-center bg-gray-800 p-4 shadow">
+  <h1 className="
+    text-2xl font-extrabold tracking-wide
+    bg-gradient-to-r from-yellow-300 to-yellow-600 
+    bg-clip-text text-transparent
+  ">
+    RMS
+  </h1>
 </div>
+
 
         <Outlet />
       </div>

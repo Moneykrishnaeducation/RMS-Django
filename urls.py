@@ -22,9 +22,17 @@ from core.views import index
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('', index, name='index'),
     path('api/', include('core.urls')),
-    re_path(r'^.*$', index, name='index'),
+]
+
+# ⭐ Required for React Router page refresh (DO NOT REMOVE)
+urlpatterns += [
+    re_path(r'^.*$', index),
 ]
 
 if settings.DEBUG:
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0] if settings.STATICFILES_DIRS else 'static')
+    urlpatterns += static(
+        settings.STATIC_URL,
+        document_root=settings.STATICFILES_DIRS[0] if settings.STATICFILES_DIRS else 'static'
+    )
