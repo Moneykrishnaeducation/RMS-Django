@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 
-const OPEN_API = "http://127.0.0.1:8000/api/positions/open/";
-const CLOSED_API = "http://127.0.0.1:8000/api/positions/closed/";
+const OPEN_API = "/api/positions/open/";
+const CLOSED_API = "/api/positions/closed/";
 
 const MatrixProfit = () => {
   const [matrix, setMatrix] = useState([]);
