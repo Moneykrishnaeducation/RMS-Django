@@ -1,186 +1,195 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 
-const LOT_API = "/api/lots/all/";
-const PROFIT_API = "/api/positions/open/";
+const OPEN_API = "http://127.0.0.1:8000/api/positions/open/";
+const CLOSED_API = "http://127.0.0.1:8000/api/positions/closed/";
 
-const MatrixProfitAndLoss = () => {
+const MatrixProfit = () => {
   const [matrix, setMatrix] = useState([]);
   const [symbols, setSymbols] = useState([]);
   const [totalRow, setTotalRow] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // Search
   const [searchLogin, setSearchLogin] = useState("");
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 12;
 
   useEffect(() => {
-    fetchMatrix();
+    loadProfitMatrix();
   }, []);
 
-  const fetchMatrix = async () => {
+  const loadProfitMatrix = async () => {
     try {
-      const lotRes = await axios.get(LOT_API);
-      const profitRes = await axios.get(PROFIT_API);
+      const openRes = await axios.get(OPEN_API);
+      const closedRes = await axios.get(CLOSED_API);
 
-      const lots = lotRes.data.data;
-      const profits = profitRes.data.positions;
+      const open = openRes.data.positions;
+      const closed = closedRes.data.closed_positions;
 
-      const uniqueLogins = [...new Set(lots.map(i => i.login_id))];
-      const uniqueSymbols = [...new Set(lots.map(i => i.symbol))];
+      const uniqueLogins = [
+        ...new Set([
+          ...open.map((x) => x.login__login),
+          ...closed.map((x) => x.login__login),
+        ]),
+      ];
+
+      const uniqueSymbols = [
+        ...new Set([
+          ...open.map((x) => x.symbol),
+          ...closed.map((x) => x.symbol),
+        ]),
+      ];
 
       setSymbols(uniqueSymbols);
 
-      const table = uniqueLogins.map(login => {
+      // Build main table rows
+      const table = uniqueLogins.map((login) => {
         const row = { login };
 
-        uniqueSymbols.forEach(symbol => {
-          const lotItem = lots.find(
-            x => x.login_id === login && x.symbol === symbol
-          );
-          const lot = lotItem ? parseFloat(lotItem.lot).toFixed(2) : "";
+        uniqueSymbols.forEach((symbol) => {
+          const openProfit = open
+            .filter((p) => p.login__login === login && p.symbol === symbol)
+            .reduce((a, b) => a + parseFloat(b.profit || 0), 0);
 
-          const profitSum = profits
-            .filter(
-              p =>
-                p.login__login === login &&
-                p.symbol === symbol &&
-                p.profit !== undefined
-            )
-            .reduce((a, b) => a + parseFloat(b.profit), 0);
+          const closedProfit = closed
+            .filter((p) => p.login__login === login && p.symbol === symbol)
+            .reduce((a, b) => a + parseFloat(b.profit || 0), 0);
 
-          const profit =
-            profitSum !== 0 ? profitSum.toFixed(2) : profitSum === 0 ? "0.00" : "";
+          const totalProfit = openProfit + closedProfit;
 
-          row[symbol] = profit;
+          row[symbol] = totalProfit.toFixed(2);
         });
 
         return row;
       });
 
-      // TOTAL ROW
-      const total = { login: "All Login" };
-      uniqueSymbols.forEach(symbol => {
-        const idx = uniqueSymbols.indexOf(symbol);
+      // TOTAL Row
+      const total = { login: "TOTAL" };
+      uniqueSymbols.forEach((symbol) => {
+        const openSum = open
+          .filter((p) => p.symbol === symbol)
+          .reduce((a, b) => a + parseFloat(b.profit || 0), 0);
 
-        if (idx % 2 === 0) {
-          const sumLots = lots
-            .filter(x => x.symbol === symbol)
-            .reduce((a, b) => a + parseFloat(b.lot), 0);
-          total[symbol] = sumLots.toFixed(2);
-        } else {
-          const sumProfits = profits
-            .filter(p => p.symbol === symbol)
-            .reduce((a, b) => a + parseFloat(b.profit), 0);
-          total[symbol] = sumProfits.toFixed(2);
-        }
+        const closedSum = closed
+          .filter((p) => p.symbol === symbol)
+          .reduce((a, b) => a + parseFloat(b.profit || 0), 0);
+
+        total[symbol] = (openSum + closedSum).toFixed(2);
       });
 
-      setTotalRow(total);
       setMatrix(table);
+      setTotalRow(total);
       setLoading(false);
-    } catch (err) {
-      console.error("Error loading:", err);
+    } catch (error) {
+      console.error("Error loading profit matrix:", error);
       setLoading(false);
     }
   };
 
+  // Search handling
   const filteredMatrix = useMemo(() => {
-    return matrix.filter(row =>
+    return matrix.filter((row) =>
       row.login.toString().toLowerCase().includes(searchLogin.toLowerCase())
     );
   }, [matrix, searchLogin]);
 
+  // Pagination
   const totalPages = Math.ceil(filteredMatrix.length / pageSize);
-
   const paginated = filteredMatrix.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
 
-  const getHeatColor = value => {
-    if (!value || isNaN(value)) return "";
+  const getHeatColor = (value) => {
     const num = parseFloat(value);
+    if (isNaN(num)) return "";
     if (num > 0) return "bg-green-50 text-green-700 font-semibold";
     if (num < 0) return "bg-red-50 text-red-700 font-semibold";
     return "text-gray-700";
   };
 
   return (
-    <div className="p-2 sm:p-8">
-
-      <h2 className="text-2xl sm:text-3xl font-extrabold mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
-        <span>💹</span>
-        <span className="bg-gradient-to-r from-indigo-600 to-teal-600 bg-clip-text text-transparent">
-          Login vs Symbol Matrix – PROFIT & LOSS
-        </span>
+    <div className="p-3 sm:p-5">
+      <h2 className="text-2xl sm:text-3xl font-extrabold mb-5 text-center sm:text-left">
+        📈 Profit Matrix (Open + Closed Positions)
       </h2>
 
-      <div className="mb-4 sm:mb-6">
+      {/* SEARCH BAR */}
+      <div className="mb-4 w-full flex justify-center sm:justify-start">
         <input
           type="text"
-          placeholder="Search by Login..."
+          placeholder="Search login..."
           value={searchLogin}
-          onChange={e => {
+          onChange={(e) => {
             setSearchLogin(e.target.value);
             setCurrentPage(1);
           }}
-          className="w-full sm:max-w-sm px-3 sm:px-4 py-2 rounded-xl border border-gray-300 shadow-sm
-            focus:ring-2 focus:ring-green-400 focus:outline-none transition text-sm sm:text-base"
+          className="w-full sm:w-80 px-4 py-2 rounded-xl border border-gray-300 shadow-sm
+          focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
         />
       </div>
 
       {loading ? (
-        <div className="text-center py-10 text-lg animate-pulse text-gray-500">
-          Loading data...
+        <div className="p-2 bg-gray-100 h-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg">Loading filter search data...</p>
         </div>
+      </div>
       ) : (
-        <div className="rounded-2xl border border-white/20 shadow-2xl 
-            backdrop-blur-xl bg-white/50 overflow-hidden">
+        <div className="rounded-xl border border-gray-200 shadow-xl overflow-hidden bg-white">
 
-          <div className="overflow-auto max-h-[75vh] w-full">
-            <table className="min-w-full table-auto text-sm sm:text-base">
-
-              <thead className="bg-indigo-500 text-white uppercase text-xs sm:text-sm sticky top-0 z-10">
+          {/* SCROLL WRAPPER */}
+          <div className="overflow-auto max-h-[75vh]">
+            <table className="min-w-max w-full text-[13px] sm:text-sm border-collapse">
+              <thead className="bg-indigo-600 text-white sticky top-0 z-30">
                 <tr>
-                  <th className="px-2 sm:px-4 py-2 text-center">Login</th>
-                  {symbols.map(symbol => (
-                    <th key={symbol} className="px-1 sm:px-3 py-2 text-center">
-                      <span className="p-1 px-3 sm:px-5 rounded-full bg-gray-900 text-white text-xs sm:text-sm shadow">
-                        {symbol}
-                      </span>
+                  <th className="sticky left-0 z-40 bg-indigo-600 px-4 py-2 text-center font-semibold">
+                    Login
+                  </th>
+                  {symbols.map((symbol) => (
+                    <th
+                      key={symbol}
+                      className="px-4 py-2 text-center font-semibold whitespace-nowrap"
+                    >
+                      {symbol}
                     </th>
                   ))}
                 </tr>
               </thead>
 
               <tbody>
-                <tr className="bg-green-50 font-bold border-gray-200">
-                  <td className="text-center px-2 sm:px-4 py-2">All Login</td>
-                  {symbols.map(symbol => (
-                    <td key={symbol} className="px-1 sm:px-3 py-2 text-center">
+
+                {/* TOTAL ROW */}
+                <tr className="bg-blue-50 border-b border-gray-300 font-bold">
+                  <td className="sticky left-0 bg-blue-50 px-4 py-2 text-center z-20">
+                    TOTAL
+                  </td>
+                  {symbols.map((symbol) => (
+                    <td key={symbol} className="px-4 py-2 text-center">
                       {totalRow[symbol]}
                     </td>
                   ))}
                 </tr>
 
+                {/* DATA ROWS */}
                 {paginated.map((row, idx) => (
                   <tr
                     key={idx}
-                    className={`transition ${
-                      idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                    } hover:bg-gray-100`}
+                    className={`${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-gray-100`}
                   >
-                    <td className="px-2 sm:px-4 py-2 text-center border-b border-gray-300 font-medium">
+                    <td
+                      className="sticky left-0 bg-white px-4 py-2 text-center font-medium border-r border-gray-300 z-10"
+                    >
                       {row.login}
                     </td>
-                    {symbols.map(symbol => (
+
+                    {symbols.map((symbol) => (
                       <td
                         key={symbol}
-                        className={`px-1 sm:px-3 py-2 text-center text-sm border-b border-gray-300 ${getHeatColor(
+                        className={`px-4 py-2 text-center border-b border-gray-200 ${getHeatColor(
                           row[symbol]
                         )}`}
                       >
@@ -190,54 +199,54 @@ const MatrixProfitAndLoss = () => {
                   </tr>
                 ))}
               </tbody>
-
             </table>
           </div>
 
-          {/* PAGINATION */}
-          <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-gray-100 border-t gap-2 sm:gap-0">
+          {/* PAGINATION UI */}
+          <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-gray-100 border-t gap-3">
 
-            <div className="text-sm text-gray-600">
+            <span className="text-sm text-gray-600">
               Page <b>{currentPage}</b> of <b>{totalPages}</b>
-            </div>
+            </span>
 
-            <div className="flex flex-wrap sm:flex-nowrap gap-1 sm:gap-2">
+            <div className="flex gap-2 flex-wrap justify-center">
               <button
-                onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                onClick={() => setCurrentPage(1)}
                 disabled={currentPage === 1}
-                className="px-3 sm:px-4 py-1 sm:py-2 rounded-lg bg-white hover:bg-gray-200 disabled:bg-gray-300 text-sm sm:text-base"
+                className="px-3 py-1 rounded-lg bg-white border hover:bg-gray-200 disabled:bg-gray-300"
+              >
+                « First
+              </button>
+
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 rounded-lg bg-white border hover:bg-gray-200 disabled:bg-gray-300"
               >
                 ← Prev
               </button>
 
-              {[...Array(totalPages)].map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`px-2 sm:px-3 py-1 sm:py-2 rounded-md font-bold text-sm sm:text-base ${
-                    currentPage === i + 1
-                      ? "bg-teal-600 text-white"
-                      : "bg-white hover:bg-gray-200"
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-
               <button
-                onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className="px-3 sm:px-4 py-1 sm:py-2 rounded-lg bg-white hover:bg-gray-200 disabled:bg-gray-300 text-sm sm:text-base"
+                className="px-3 py-1 rounded-lg bg-white border hover:bg-gray-200 disabled:bg-gray-300"
               >
                 Next →
               </button>
+
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 rounded-lg bg-white border hover:bg-gray-200 disabled:bg-gray-300"
+              >
+                Last »
+              </button>
             </div>
           </div>
-
         </div>
       )}
     </div>
   );
 };
 
-export default MatrixProfitAndLoss;
+export default MatrixProfit;
