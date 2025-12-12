@@ -63,40 +63,93 @@ class MT5Service:
     _shared_manager = None
     _shared_lock = threading.Lock()
 
-    def __init__(self, host=None, port=None, login=None, password=None, pump_mode=1, timeout=120000):
-        # load defaults from .env if not provided
-        env = _read_env()
-        host = host or env.get('MT5_HOST')
-        port = port or env.get('MT5_PORT')
-        login = login or env.get('MT5_MANAGER_USER')
-        password = password or env.get('MT5_MANAGER_PASS')
+    def __init__(self, host=None, port=None, login=None, password=None,
+             server_id=None, pump_mode=1, timeout=120000):
 
-        # If not in env, try to load from database ServerSetting
-        if host is None or port is None or login is None or password is None:
+        env = _read_env()
+
+        
+        if server_id:
             try:
                 from core.models import ServerSetting
-                server_setting = ServerSetting.objects.latest('created_at')
-                host = host or server_setting.server_ip.split(':')[0] if ':' in server_setting.server_ip else server_setting.server_ip
-                port = port or (server_setting.server_ip.split(':')[1] if ':' in server_setting.server_ip else '443')
-                login = login or str(server_setting.real_account_login)
-                password = password or server_setting.real_account_password
-            except Exception:
-                pass
+                server = ServerSetting.objects.get(id=server_id)
 
-        if host is None or port is None or login is None or password is None:
-            raise ValueError('MT5 connection parameters missing (host, port, login, password). Please configure server settings first.')
+                host = host or (server.server_ip.split(':')[0] if ':' in server.server_ip else server.server_ip)
+                port = port or (server.server_ip.split(':')[1] if ':' in server.server_ip else '443')
+                login = login or str(server.real_account_login)
+                password = password or server.real_account_password
+
+            except Exception as e:
+                raise ValueError(f"Server ID {server_id} not found: {e}")
+
+        else:
+            
+            host = host or env.get('MT5_HOST')
+            port = port or env.get('MT5_PORT')
+            login = login or env.get('MT5_MANAGER_USER')
+            password = password or env.get('MT5_MANAGER_PASS')
+
+           
+            if host is None or port is None or login is None or password is None:
+                try:
+                    from core.models import ServerSetting
+                    srv = ServerSetting.objects.latest('created_at')
+
+                    host = host or (srv.server_ip.split(':')[0] if ':' in srv.server_ip else srv.server_ip)
+                    port = port or (srv.server_ip.split(':')[1] if ':' in srv.server_ip else '443')
+                    login = login or str(srv.real_account_login)
+                    password = password or srv.real_account_password
+                except:
+                    pass
+
+        if not host or not port or not login or not password:
+            raise ValueError("Missing MT5 connection parameters.")
 
         self.address = f"{host}:{port}"
         try:
             self.login = int(login)
-        except Exception:
+        except:
             self.login = login
+
         self.password = password
         self.pump_mode = pump_mode
         self.timeout = timeout
-        self.manager = None
-        self._instance_dir = None
-        self._lock = threading.Lock()
+
+    
+    # def __init__(self, host=None, port=None, login=None, password=None, pump_mode=1, timeout=120000):
+        
+    #     env = _read_env()
+    #     host = host or env.get('MT5_HOST')
+    #     port = port or env.get('MT5_PORT')
+    #     login = login or env.get('MT5_MANAGER_USER')
+    #     password = password or env.get('MT5_MANAGER_PASS')
+
+        
+    #     if host is None or port is None or login is None or password is None:
+    #         try:
+    #             from core.models import ServerSetting
+    #             server_setting = ServerSetting.objects.latest('created_at')
+    #             host = host or server_setting.server_ip.split(':')[0] if ':' in server_setting.server_ip else server_setting.server_ip
+    #             port = port or (server_setting.server_ip.split(':')[1] if ':' in server_setting.server_ip else '443')
+    #             login = login or str(server_setting.real_account_login)
+    #             password = password or server_setting.real_account_password
+    #         except Exception:
+    #             pass
+
+    #     if host is None or port is None or login is None or password is None:
+    #         raise ValueError('MT5 connection parameters missing (host, port, login, password). Please configure server settings first.')
+
+    #     self.address = f"{host}:{port}"
+    #     try:
+    #         self.login = int(login)
+    #     except Exception:
+    #         self.login = login
+    #     self.password = password
+    #     self.pump_mode = pump_mode
+    #     self.timeout = timeout
+    #     self.manager = None
+    #     self._instance_dir = None
+    #     self._lock = threading.Lock()
 
     def _init_manager(self):
         # create per-process instance directory for MT5 library
@@ -519,6 +572,109 @@ class MT5Service:
                 pass
         
         return closed_deals
+
+
+# Global variables to hold current MT5 connection
+_mt5_instance = None
+_current_server_setting = None
+_mt5_lock = threading.Lock()
+
+
+def ensure_connected(func):
+    """
+    Decorator to ensure the MT5 Service is connected before executing a function.
+    """
+    def wrapper(*args, **kwargs):
+        global _mt5_instance
+        if not _mt5_instance or not getattr(_mt5_instance, 'manager', None):
+            raise Exception("MT5 Service is not connected. Please reconnect using `reset_mt5_instance()`.")
+        return func(*args, **kwargs)
+    return wrapper
+
+
+def reset_mt5_instance(server_id=None):
+    """
+    Reset the global MT5Service instance to reload credentials from DB or a specific server_id.
+    Call this after updating server settings.
+    """
+    global _mt5_instance, _current_server_setting
+    with _mt5_lock:
+        # Disconnect existing instance
+        if _mt5_instance:
+            try:
+                if hasattr(_mt5_instance, 'manager') and _mt5_instance.manager:
+                    # MT5Service might not have explicit disconnect
+                    _mt5_instance.manager = None
+                logger.info("Previous MT5Service instance disconnected successfully")
+            except Exception as e:
+                logger.warning(f"Error disconnecting previous MT5Service instance: {e}")
+
+        # Load new server settings from DB
+        try:
+            if server_id:
+                from core.models import ServerSetting
+                server_setting = ServerSetting.objects.get(id=server_id)
+            else:
+                from core.models import ServerSetting
+                server_setting = ServerSetting.objects.latest('created_at')
+            _current_server_setting = server_setting
+        except Exception as e:
+            logger.error("No ServerSetting found to initialize MT5Service")
+            _mt5_instance = None
+            return None
+
+        # Initialize MT5Service with DB credentials
+        host = server_setting.server_ip.split(':')[0]
+        port = int(server_setting.server_ip.split(':')[1]) if ':' in server_setting.server_ip else 443
+        login = int(server_setting.real_account_login)
+        password = server_setting.real_account_password
+
+        try:
+            _mt5_instance = MT5Service(host=host, port=port, login=login, password=password)
+            _mt5_instance.connect()
+            logger.info(f"MT5Service connected: {host}:{port}, login={login}")
+        except Exception as e:
+            _mt5_instance = None
+            logger.error(f"Failed to connect MT5Service: {e}")
+            cache.set('mt5_manager_error', str(e))
+
+        # Clear cached MT5 groups
+        try:
+            from core.models import MT5GroupConfig
+            MT5GroupConfig.objects.all().update(is_enabled=False, last_sync=None)
+            cache.delete('mt5_groups_sync')
+            cache.delete('mt5_connection_status')
+            logger.info("Cleared cached MT5 trading groups")
+        except Exception as e:
+            logger.warning(f"Error clearing MT5 groups cache: {e}")
+
+        return _mt5_instance
+
+
+def force_refresh_trading_groups():
+    """
+    Force refresh trading groups from the currently connected MT5Service instance.
+    """
+    global _mt5_instance
+    if not _mt5_instance or not getattr(_mt5_instance, 'manager', None):
+        logger.error("MT5Service is not connected. Cannot refresh trading groups.")
+        return False
+
+    try:
+        # Clear cached groups
+        from core.models import MT5GroupConfig
+        MT5GroupConfig.objects.all().update(is_enabled=False, last_sync=None)
+        # Sync trading groups from MT5
+        result = _mt5_instance.sync_groups()  # Assumes your MT5Service has a method `sync_groups()`
+        if result:
+            logger.info("Trading groups refreshed from MT5")
+            return True
+        else:
+            logger.error("Failed to sync trading groups from MT5")
+            return False
+    except Exception as e:
+        logger.error(f"Error refreshing trading groups: {e}")
+        return False
 
 
 if __name__ == '__main__':

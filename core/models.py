@@ -113,3 +113,12 @@ class ClosedPositions(models.Model):
         app_label = 'core'
         unique_together = ('login', 'position')  # <-- unique per account
 
+from django.db import models
+
+class MT5GroupConfig(models.Model):
+    group_name = models.CharField(max_length=100)
+    is_enabled = models.BooleanField(default=True)
+    last_sync = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return self.group_name

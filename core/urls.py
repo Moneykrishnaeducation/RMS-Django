@@ -18,6 +18,7 @@ urlpatterns = [
     path('closepositions/sync_all/', views.sync_all_close_positions, name='sync_all_user_data'), #get close position
     path('add-server/', views.add_server_setting, name='add_server_setting'),
     path('get-servers/', views.get_server_settings, name='get_server_settings'),
+    path("get-server/<int:server_id>/", views.get_server_by_id),
     
     
     # Server settings endpoints

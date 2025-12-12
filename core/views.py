@@ -1213,3 +1213,16 @@ class ServerSettingsAPIView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+def get_server_by_id(request, server_id):
+    try:
+        server = ServerSetting.objects.get(id=server_id)
+        data = {
+            "id": server.id,
+            "host": server.server_ip.split(":")[0] if ":" in server.server_ip else server.server_ip,
+            "port": server.server_ip.split(":")[1] if ":" in server.server_ip else "443",
+            "login": server.real_account_login,
+            "password": server.real_account_password
+        }
+        return JsonResponse({"success": True, "data": data})
+    except ServerSetting.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Server not found"}, status=404)
