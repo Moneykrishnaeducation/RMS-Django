@@ -573,6 +573,56 @@ class MT5Service:
         
         return closed_deals
 
+    def sync_groups(self):
+        """
+        Sync trading groups from MT5 and update the MT5GroupConfig model.
+        Returns True if successful, False otherwise.
+        """
+        try:
+            mgr = self.connect()
+            groups = []
+            try:
+                total = mgr.GroupTotal()
+            except Exception:
+                total = 0
+            if not total:
+                return False
+
+            for i in range(total):
+                try:
+                    g = mgr.GroupNext(i)
+                    if not g:
+                        continue
+                    name = None
+                    for attr in ('Group', 'Name', 'group', 'name', 'GroupName'):
+                        if hasattr(g, attr):
+                            name = getattr(g, attr)
+                            break
+                    if name:
+                        groups.append(name)
+                except Exception:
+                    continue
+
+            # Update MT5GroupConfig model
+            from core.models import MT5GroupConfig
+            from django.utils import timezone
+
+            # Mark all existing groups as disabled
+            MT5GroupConfig.objects.all().update(is_enabled=False)
+
+            # Add or update groups
+            for group_name in groups:
+                MT5GroupConfig.objects.update_or_create(
+                    group_name=group_name,
+                    defaults={'is_enabled': True, 'last_sync': timezone.now()}
+                )
+
+            logger.info(f"Synced {len(groups)} trading groups from MT5")
+            return True
+        except Exception as e:
+            logger.error(f"Error syncing groups from MT5: {e}")
+            return False
+
 
 # Global variables to hold current MT5 connection
 _mt5_instance = None
