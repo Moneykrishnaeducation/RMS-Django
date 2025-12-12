@@ -135,48 +135,55 @@ const FilterSearch = () => {
       {/* Filters */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {/* Login Filter */}
-        <div>
-          <label className="block mb-1 font-medium text-gray-700">Filter by Login</label>
-          <select
-            className="w-full p-2 border rounded-lg bg-white focus:ring focus:ring-indigo-300"
-            value={loginFilter}
-            onChange={(e) => setLoginFilter(e.target.value)}
-          >
-            <option value="All">All</option>
-            {Array.from(new Set(data.map(i => i.login))).map((login, idx) =>
-              <option key={idx} value={login}>{login}</option>
-            )}
-          </select>
+       <div className="flex flex-col w-full max-w-full">
+  <label className="mb-1 font-medium text-gray-700">Filter by Login</label>
+  <select
+    className="w-80 p-2 border rounded-lg bg-white truncate" // fixed width here
+    value={loginFilter}
+    onChange={(e) => setLoginFilter(e.target.value)}
+  >
+    <option value="All">All</option>
+    {Array.from(new Set(data.map(i => i.login))).map((login, idx) => (
+      <option key={idx} value={login} title={login}>
+        {String(login).length > 15 ? String(login).substring(0, 15) + "..." : login}
+      </option>
+    ))}
+  </select>
+</div>
 
-        </div>
 
         {/* Name Filter */}
-        <div>
-          <label className="block mb-1 font-medium text-gray-700">Filter by Name</label>
-          <select
-            className="w-full p-2 border rounded-lg bg-white focus:ring focus:ring-indigo-300"
-            value={nameFilter}
-            onChange={(e) => setNameFilter(e.target.value)}
-          >
-            <option>All</option>
-            {Array.from(new Set(data.map(i => i.name))).map((name, idx) =>
-              <option key={idx}>{name}</option>
-            )}
-          </select>
-        </div>
+        <div className="flex flex-col w-full max-w-full">
+  <label className="mb-1 font-medium text-gray-700">Filter by Name</label>
+  <select
+    className="w-80 p-2 border rounded-lg bg-white truncate" // fixed width
+    value={nameFilter}
+    onChange={(e) => setNameFilter(e.target.value)}
+  >
+    <option value="All">All</option>
+    {Array.from(new Set(data.map(i => i.name))).map((name, idx) => (
+      <option key={idx} value={name} title={name}>
+        {name.length > 15 ? name.substring(0, 15) + "..." : name}
+      </option>
+    ))}
+  </select>
+</div>
+
 
         {/* Group Filter */}
-        <div>
-          <label className="block mb-1 font-medium text-gray-700">Filter by Group</label>
-          <select
-            className="w-full p-2 border rounded-lg bg-white focus:ring focus:ring-indigo-300"
-            value={groupFilter}
-            onChange={(e) => setGroupFilter(e.target.value)}
-          >
-            <option>All</option>
-            {Array.from(new Set(data.map(i => i.group))).map((grp, idx) =>
-              <option key={idx}>{grp}</option>
-            )}
+        <div className="flex flex-col w-full max-w-full">
+  <label className="mb-1 font-medium text-gray-700">Filter by Group</label>
+           <select
+    className="w-80 p-2 border rounded-lg bg-white truncate" // fixed width
+    value={groupFilter}
+    onChange={(e) => setGroupFilter(e.target.value)}
+  >
+       <option value="All">All</option>
+    {Array.from(new Set(data.map(i => i.group))).map((grp, idx) => (     
+      <option key={idx} value={grp} title={grp}>
+        {grp.length > 15 ? grp.substring(0, 15) + "..." : grp}
+      </option>
+    ))}
           </select>
         </div>
       </div>
@@ -221,35 +228,36 @@ const FilterSearch = () => {
 
       {/* Pagination */}
       <div className="flex justify-between items-center mt-4">
-        <div className="flex space-x-2">
-          <button
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="px-3 py-1 rounded-md border bg-white hover:bg-gray-100 disabled:opacity-50"
-          >
-            Prev
-          </button>
-          <button
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="px-3 py-1 rounded-md border bg-white hover:bg-gray-100 disabled:opacity-50"
-          >
-            Next
-          </button>
-        </div>
+        <div className="flex items-center space-x-2">
+  <button
+    onClick={() => handlePageChange(currentPage - 1)}
+    disabled={currentPage === 1}
+    className="px-3 py-1 rounded-md border bg-white hover:bg-gray-100 disabled:opacity-50"
+  >
+    Prev
+  </button>
 
+  <select
+    className="border px-2 py-1 rounded-md w-24 truncate text-center" // mobile-friendly fixed width
+    value={currentPage}
+    onChange={(e) => handlePageChange(Number(e.target.value))}
+  >
+    {Array.from({ length: totalPages }, (_, i) => (
+      <option key={i + 1} value={i + 1}>
+        {i + 1}
+      </option>
+    ))}
+  </select>
 
-        <select
-          className="border px-2 py-1 rounded-md"
-          value={currentPage}
-          onChange={(e) => handlePageChange(Number(e.target.value))}
-        >
-          {Array.from({ length: totalPages }, (_, i) => (
-            <option key={i + 1} value={i + 1}>
-              Page {i + 1}
-            </option>
-          ))}
-        </select>
+  <button
+    onClick={() => handlePageChange(currentPage + 1)}
+    disabled={currentPage === totalPages}
+    className="px-3 py-1 rounded-md border bg-white hover:bg-gray-100 disabled:opacity-50"
+  >
+    Next
+  </button>
+</div>
+
       </div>
     </div>
   );
