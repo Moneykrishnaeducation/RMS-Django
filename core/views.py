@@ -346,7 +346,7 @@ def get_all_lots_by_login(request, login_id):
         ]
 
         # Return the data as a JSON response
-        return JsonResponse({"data": all_lots}, safe=False)
+        return JsonResponse({"data": all_lots})
 
     except Exception as e:
         # Log the exception for debugging purposes (optional)
@@ -979,8 +979,8 @@ def store_closed_positions(account, deals):
             continue
 
         symbol = getattr(deal, "Symbol", None)
-        volume= round(getattr(deal, 'Volume', 0) / 10000, 2)
         volume = getattr(deal, "Volume", getattr(deal, "VolumeClosed", None))
+        volume= round(getattr(deal, 'Volume', 0) / 10000, 2)
         price = getattr(deal, "Price", None)
         profit = getattr(deal, "Profit", 0)
         action = getattr(deal, "Action", None)
