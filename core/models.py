@@ -22,6 +22,8 @@ class Accounts(models.Model):
     margin_level = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     last_access = models.DateTimeField(blank=True, null=True)
     registration = models.DateTimeField(blank=True, null=True)
+    last_closed_sync = models.DateTimeField(null=True, blank=True)  # last stored closed position
+
  
     class Meta:
         db_table = 'Accounts'
@@ -46,7 +48,7 @@ class OpenPositions(models.Model):
     login = models.ForeignKey(Accounts, on_delete=models.CASCADE, related_name='open_positions')
     position_id = models.BigIntegerField(unique=True)
     symbol = models.CharField(max_length=50)
-    volume = models.DecimalField(max_digits=10, decimal_places=2)
+    volume = models.DecimalField(max_digits=20, decimal_places=2)
     price = models.DecimalField(max_digits=15, decimal_places=5)
     profit = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     position_type = models.CharField(max_length=10, choices=[('Buy', 'Buy'), ('Sell', 'Sell')])
@@ -95,9 +97,11 @@ class OpenPositions(models.Model):
 
 class ClosedPositions(models.Model):
     login = models.ForeignKey(Accounts, on_delete=models.CASCADE, related_name='closed_positions')
-    deal_id = models.BigIntegerField()  # ❗ REMOVE unique=True
+    position = models.BigIntegerField(null=True, blank=True)  # temporarily allow nulls
+
+    deal_id = models.BigIntegerField()   # optional, no uniqueness constraint
     symbol = models.CharField(max_length=50)
-    volume = models.CharField(max_length=20)
+    volume = models.DecimalField(max_digits=20, decimal_places=2)
     price = models.CharField(max_length=20)
     profit = models.CharField(max_length=20, default='0')
     position_type = models.CharField(max_length=10, choices=[('Buy', 'Buy'), ('Sell', 'Sell')])
@@ -107,4 +111,5 @@ class ClosedPositions(models.Model):
     class Meta:
         db_table = 'ClosedPositions'
         app_label = 'core'
-        unique_together = ('login', 'deal_id')
+        unique_together = ('login', 'position')  # <-- unique per account
+
