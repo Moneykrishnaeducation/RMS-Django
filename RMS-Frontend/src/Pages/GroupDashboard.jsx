@@ -37,7 +37,6 @@ const GroupDashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Process accounts
   const processedAccounts = useMemo(() => {
     return accounts.map((d) => ({
       login: d.login || d.Login || 0,
@@ -45,7 +44,6 @@ const GroupDashboard = () => {
     }));
   }, [accounts]);
 
-  // Process positions
   const processedPositions = useMemo(() => {
     return positions.map((p) => ({
       login: p.login__login,
@@ -55,22 +53,32 @@ const GroupDashboard = () => {
     }));
   }, [positions]);
 
-  // Group summary
   const groupSummary = useMemo(() => {
     const map = {};
 
-    // Accounts per group
     processedAccounts.forEach((d) => {
-      if (!map[d.group]) map[d.group] = { group: d.group, accounts: 0, open_positions: 0, total_volume: 0, total_usd_pl: 0 };
+      if (!map[d.group])
+        map[d.group] = {
+          group: d.group,
+          accounts: 0,
+          open_positions: 0,
+          total_volume: 0,
+          total_usd_pl: 0,
+        };
       map[d.group].accounts += 1;
     });
 
-    // Open positions per group
     processedPositions.forEach((pos) => {
-      // Find group of this login
       const acc = processedAccounts.find((a) => a.login === pos.login);
       const g = acc?.group || "Unknown";
-      if (!map[g]) map[g] = { group: g, accounts: 0, open_positions: 0, total_volume: 0, total_usd_pl: 0 };
+      if (!map[g])
+        map[g] = {
+          group: g,
+          accounts: 0,
+          open_positions: 0,
+          total_volume: 0,
+          total_usd_pl: 0,
+        };
       map[g].open_positions += 1;
       map[g].total_volume += pos.volume;
       map[g].total_usd_pl += pos.profit;
@@ -79,77 +87,97 @@ const GroupDashboard = () => {
     return Object.values(map);
   }, [processedAccounts, processedPositions]);
 
-  // Totals
-  const totals = useMemo(() => ({
-    totalGroups: groupSummary.length,
-    totalAccounts: groupSummary.reduce((a, b) => a + b.accounts, 0),
-    totalPositions: groupSummary.reduce((a, b) => a + b.open_positions, 0),
-    totalVolume: groupSummary.reduce((a, b) => a + b.total_volume, 0),
-    totalUSDPL: groupSummary.reduce((a, b) => a + b.total_usd_pl, 0),
-  }), [groupSummary]);
+  const totals = useMemo(
+    () => ({
+      totalGroups: groupSummary.length,
+      totalAccounts: groupSummary.reduce((a, b) => a + b.accounts, 0),
+      totalPositions: groupSummary.reduce((a, b) => a + b.open_positions, 0),
+      totalVolume: groupSummary.reduce((a, b) => a + b.total_volume, 0),
+      totalUSDPL: groupSummary.reduce((a, b) => a + b.total_usd_pl, 0),
+    }),
+    [groupSummary]
+  );
 
-  if (loading) return <p className="p-6">Loading...</p>;
+  if (loading) return <p className="p-6 text-center">Loading...</p>;
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-4xl font-bold mb-4 text-gray-800">🌟 Group Dashboard</h1>
-      <p className="text-lg text-gray-700 mb-4">
-  {totals.totalGroups} groups | {totals.totalAccounts} accounts | {totals.totalPositions} Total positions</p>
+    <div className="p-2 bg-gray-100 min-h-screen">
+      <h1 className="text-3xl md:text-4xl font-bold mb-4 text-gray-800 text-center md:text-left">
+        🌟 Group Dashboard
+      </h1>
+      <p className="text-md md:text-lg text-gray-700 mb-4 text-center md:text-left">
+        {totals.totalGroups} groups | {totals.totalAccounts} accounts |{" "}
+        {totals.totalPositions} Total positions
+      </p>
 
       {/* Summary Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 mb-8">
         <div className="bg-white shadow rounded-lg p-4 border text-center">
-          <p className="text-gray-500">Total Groups</p>
+          <p className="text-gray-500 text-sm sm:text-base">Total Groups</p>
           <p className="text-2xl font-bold">{totals.totalGroups}</p>
         </div>
         <div className="bg-white shadow rounded-lg p-4 border text-center">
-          <p className="text-gray-500">Total Accounts</p>
+          <p className="text-gray-500 text-sm sm:text-base">Total Accounts</p>
           <p className="text-2xl font-bold">{totals.totalAccounts}</p>
         </div>
         <div className="bg-white shadow rounded-lg p-4 border text-center">
-          <p className="text-gray-500">Open Positions</p>
+          <p className="text-gray-500 text-sm sm:text-base">Open Positions</p>
           <p className="text-2xl font-bold">{totals.totalPositions}</p>
         </div>
         <div className="bg-white shadow rounded-lg p-4 border text-center">
-          <p className="text-gray-500">Total Net Lot</p>
-          <p className="text-2xl font-bold text-blue-600">{totals.totalVolume.toFixed(2)}</p>
+          <p className="text-gray-500 text-sm sm:text-base">Total Net Lot</p>
+          <p className="text-2xl font-bold text-blue-600">
+            {totals.totalVolume.toFixed(2)}
+          </p>
         </div>
         <div className="bg-white shadow rounded-lg p-4 border text-center">
-          <p className="text-gray-500">Total USD P&L</p>
-          <p className="text-2xl font-bold text-green-600">${totals.totalUSDPL.toFixed(2)}</p>
+          <p className="text-gray-500 text-sm sm:text-base">Total USD P&L</p>
+          <p className="text-2xl font-bold text-green-600">
+            ${totals.totalUSDPL.toFixed(2)}
+          </p>
         </div>
       </div>
 
       {/* Group Summary Table */}
       <div className="bg-white shadow rounded-lg overflow-x-auto">
-        <table className="w-full table-auto ">
+        <table className="min-w-full table-auto text-sm md:text-base">
           <thead>
-            <tr className="bg-indigo-600 text-white uppercase text-sm">
-              <th className="p-3">Group</th>
-              <th className="p-3">Accounts</th>
-              <th className="p-3">Open Positions</th>
-              <th className="p-3">Total Net Lot</th>
-              <th className="p-3">Total USD P&L</th>
-              <th className="p-3">Avg Net Lot</th>
-              <th className="p-3">Avg USD P&L</th>
+            <tr className="bg-indigo-600 text-white uppercase text-xs sm:text-sm md:text-base">
+              <th className="p-2 md:p-3 text-left">Group</th>
+              <th className="p-2 md:p-3 text-center">Accounts</th>
+              <th className="p-2 md:p-3 text-center">Open Positions</th>
+              <th className="p-2 md:p-3 text-center">Total Net Lot</th>
+              <th className="p-2 md:p-3 text-center">Total USD P&L</th>
+              <th className="p-2 md:p-3 text-center">Avg Net Lot</th>
+              <th className="p-2 md:p-3 text-center">Avg USD P&L</th>
             </tr>
           </thead>
           <tbody>
             {groupSummary.map((g) => (
-              <tr key={g.group} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
-                <td className="p-2 font-medium">{g.group}</td>
-                <td className="p-2 text-center">{g.accounts}</td>
-                <td className="p-2 text-center">{g.open_positions}</td>
-                <td className="p-2 text-center">{g.total_volume.toFixed(2)}</td>
-                <td className="p-2 text-center">${g.total_usd_pl.toFixed(2)}</td>
-                <td className="p-2 text-center">{g.accounts ? (g.total_volume / g.accounts).toFixed(2) : 0}</td>
-                <td className="p-2 text-center">{g.accounts ? (g.total_usd_pl / g.accounts).toFixed(2) : 0}</td>
+              <tr
+                key={g.group}
+                className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                <td className="p-2 md:p-3 font-medium">{g.group}</td>
+                <td className="p-2 md:p-3 text-center">{g.accounts}</td>
+                <td className="p-2 md:p-3 text-center">{g.open_positions}</td>
+                <td className="p-2 md:p-3 text-center">
+                  {g.total_volume.toFixed(2)}
+                </td>
+                <td className="p-2 md:p-3 text-center">
+                  ${g.total_usd_pl.toFixed(2)}
+                </td>
+                <td className="p-2 md:p-3 text-center">
+                  {g.accounts ? (g.total_volume / g.accounts).toFixed(2) : 0}
+                </td>
+                <td className="p-2 md:p-3 text-center">
+                  {g.accounts ? (g.total_usd_pl / g.accounts).toFixed(2) : 0}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-
     </div>
   );
 };

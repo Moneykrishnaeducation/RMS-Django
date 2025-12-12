@@ -38,13 +38,11 @@ const MatrixProfitAndLoss = () => {
         const row = { login };
 
         uniqueSymbols.forEach(symbol => {
-          // LOT
           const lotItem = lots.find(
             x => x.login_id === login && x.symbol === symbol
           );
           const lot = lotItem ? parseFloat(lotItem.lot).toFixed(2) : "";
 
-          // PROFIT (sum all open positions for same login + symbol)
           const profitSum = profits
             .filter(
               p =>
@@ -56,11 +54,6 @@ const MatrixProfitAndLoss = () => {
 
           const profit =
             profitSum !== 0 ? profitSum.toFixed(2) : profitSum === 0 ? "0.00" : "";
-
-          // Alternating Cells  
-          // Even index → LOT  
-          // Odd index → PROFIT  
-          const symbolIndex = uniqueSymbols.indexOf(symbol);
 
           row[symbol] = profit;
         });
@@ -77,13 +70,11 @@ const MatrixProfitAndLoss = () => {
           const sumLots = lots
             .filter(x => x.symbol === symbol)
             .reduce((a, b) => a + parseFloat(b.lot), 0);
-
           total[symbol] = sumLots.toFixed(2);
         } else {
           const sumProfits = profits
             .filter(p => p.symbol === symbol)
             .reduce((a, b) => a + parseFloat(b.profit), 0);
-
           total[symbol] = sumProfits.toFixed(2);
         }
       });
@@ -97,7 +88,6 @@ const MatrixProfitAndLoss = () => {
     }
   };
 
-  // SEARCH FILTER
   const filteredMatrix = useMemo(() => {
     return matrix.filter(row =>
       row.login.toString().toLowerCase().includes(searchLogin.toLowerCase())
@@ -111,7 +101,7 @@ const MatrixProfitAndLoss = () => {
     currentPage * pageSize
   );
 
-  const getHeatColor = (value) => {
+  const getHeatColor = value => {
     if (!value || isNaN(value)) return "";
     const num = parseFloat(value);
     if (num > 0) return "bg-green-50 text-green-700 font-semibold";
@@ -120,26 +110,26 @@ const MatrixProfitAndLoss = () => {
   };
 
   return (
-    <div className="p-8">
+    <div className="p-2 sm:p-8">
 
-      <h2 className="text-3xl font-extrabold mb-6 flex items-center gap-3">
+      <h2 className="text-2xl sm:text-3xl font-extrabold mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
         <span>💹</span>
         <span className="bg-gradient-to-r from-indigo-600 to-teal-600 bg-clip-text text-transparent">
-          Login vs Symbol Matrix –  PROFIT & LOSS
+          Login vs Symbol Matrix – PROFIT & LOSS
         </span>
       </h2>
 
-      <div className="mb-6">
+      <div className="mb-4 sm:mb-6">
         <input
           type="text"
           placeholder="Search by Login..."
           value={searchLogin}
-          onChange={(e) => {
+          onChange={e => {
             setSearchLogin(e.target.value);
             setCurrentPage(1);
           }}
-          className="w-full max-w-sm px-4 py-2 rounded-xl border border-gray-300 shadow-sm
-            focus:ring-2 focus:ring-green-400 focus:outline-none transition"
+          className="w-full sm:max-w-sm px-3 sm:px-4 py-2 rounded-xl border border-gray-300 shadow-sm
+            focus:ring-2 focus:ring-green-400 focus:outline-none transition text-sm sm:text-base"
         />
       </div>
 
@@ -151,15 +141,15 @@ const MatrixProfitAndLoss = () => {
         <div className="rounded-2xl border border-white/20 shadow-2xl 
             backdrop-blur-xl bg-white/50 overflow-hidden">
 
-          <div className="overflow-auto max-h-[75vh] overflow-x-auto">
-            <table className="w-full table-auto">
+          <div className="overflow-auto max-h-[75vh] w-full">
+            <table className="min-w-full table-auto text-sm sm:text-base">
 
-              <thead className="bg-indigo-500 text-white uppercase text-sm">
+              <thead className="bg-indigo-500 text-white uppercase text-xs sm:text-sm sticky top-0 z-10">
                 <tr>
-                  <th className="px-4 py-2">Login</th>
+                  <th className="px-2 sm:px-4 py-2 text-center">Login</th>
                   {symbols.map(symbol => (
-                    <th key={symbol} className="px-3 py-2 text-center">
-                      <span className="p-1 px-5 rounded-full bg-gray-900 text-white text-xs shadow">
+                    <th key={symbol} className="px-1 sm:px-3 py-2 text-center">
+                      <span className="p-1 px-3 sm:px-5 rounded-full bg-gray-900 text-white text-xs sm:text-sm shadow">
                         {symbol}
                       </span>
                     </th>
@@ -168,11 +158,10 @@ const MatrixProfitAndLoss = () => {
               </thead>
 
               <tbody>
-
                 <tr className="bg-green-50 font-bold border-gray-200">
-                  <td className="text-center">All Login</td>
+                  <td className="text-center px-2 sm:px-4 py-2">All Login</td>
                   {symbols.map(symbol => (
-                    <td key={symbol} className="px-3 py-2 text-center">
+                    <td key={symbol} className="px-1 sm:px-3 py-2 text-center">
                       {totalRow[symbol]}
                     </td>
                   ))}
@@ -185,14 +174,13 @@ const MatrixProfitAndLoss = () => {
                       idx % 2 === 0 ? "bg-white" : "bg-gray-50"
                     } hover:bg-gray-100`}
                   >
-                    <td className="px-4 py-2 text-center border-b border-gray-300 font-medium">
+                    <td className="px-2 sm:px-4 py-2 text-center border-b border-gray-300 font-medium">
                       {row.login}
                     </td>
-
                     {symbols.map(symbol => (
                       <td
                         key={symbol}
-                        className={`px-3 py-2 text-center text-sm border-b border-gray-300 ${getHeatColor(
+                        className={`px-1 sm:px-3 py-2 text-center text-sm border-b border-gray-300 ${getHeatColor(
                           row[symbol]
                         )}`}
                       >
@@ -201,25 +189,23 @@ const MatrixProfitAndLoss = () => {
                     ))}
                   </tr>
                 ))}
-
               </tbody>
 
             </table>
           </div>
 
           {/* PAGINATION */}
-          <div className="flex items-center justify-between p-4 bg-gray-100 border-t">
+          <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-gray-100 border-t gap-2 sm:gap-0">
 
             <div className="text-sm text-gray-600">
               Page <b>{currentPage}</b> of <b>{totalPages}</b>
             </div>
 
-            <div className="flex gap-2">
-
+            <div className="flex flex-wrap sm:flex-nowrap gap-1 sm:gap-2">
               <button
                 onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
                 disabled={currentPage === 1}
-                className="px-4 py-2 rounded-lg bg-white hover:bg-gray-200 disabled:bg-gray-300"
+                className="px-3 sm:px-4 py-1 sm:py-2 rounded-lg bg-white hover:bg-gray-200 disabled:bg-gray-300 text-sm sm:text-base"
               >
                 ← Prev
               </button>
@@ -228,7 +214,7 @@ const MatrixProfitAndLoss = () => {
                 <button
                   key={i}
                   onClick={() => setCurrentPage(i + 1)}
-                  className={`px-3 py-1 rounded-md font-bold ${
+                  className={`px-2 sm:px-3 py-1 sm:py-2 rounded-md font-bold text-sm sm:text-base ${
                     currentPage === i + 1
                       ? "bg-teal-600 text-white"
                       : "bg-white hover:bg-gray-200"
@@ -241,17 +227,16 @@ const MatrixProfitAndLoss = () => {
               <button
                 onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className="px-4 py-2 rounded-lg bg-white hover:bg-gray-200 disabled:bg-gray-300"
+                className="px-3 sm:px-4 py-1 sm:py-2 rounded-lg bg-white hover:bg-gray-200 disabled:bg-gray-300 text-sm sm:text-base"
               >
                 Next →
               </button>
-
             </div>
           </div>
 
         </div>
       )}
-    </div> 
+    </div>
   );
 };
 

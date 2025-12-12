@@ -113,13 +113,14 @@ const OpenPosition = () => {
   const totalSymbols = [...new Set(filteredData.map((p) => p.symbol))].length;
 
   return (
-    <div className="p-4">
-      <h2 className="text-2xl font-semibold mb-4 text-gray-800">
+    <div className="p-2">
+
+      <h2 className="text-2xl font-semibold mb-4 text-gray-800 text-center sm:text-left">
         Open Positions
       </h2>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-4">
+      <div className="flex flex-col sm:flex-row gap-4 mb-4 w-full">
         <input
           type="text"
           placeholder="Search Login..."
@@ -144,7 +145,7 @@ const OpenPosition = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
         <div className="bg-blue-50 rounded-lg p-4 shadow flex flex-col items-center">
           <span className="text-gray-500 text-sm">Total Positions</span>
           <span className="text-xl font-bold text-blue-600">{totalPositions}</span>
@@ -164,16 +165,13 @@ const OpenPosition = () => {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto shadow-lg rounded-lg border border-gray-200">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-indigo-700 text-white uppercase text-sm">
+      <div className="overflow-x-auto shadow-lg rounded-lg border border-gray-200 w-full">
+        <table className="min-w-full divide-y divide-gray-200 text-sm">
+          <thead className="bg-indigo-700 text-white uppercase">
             <tr>
               {["Login", "Name", "Group", "Base Symbol", "Net Lot", "USD P&L"].map(
                 (header) => (
-                  <th
-                    key={header}
-                    className="px-7 py-4 text-left"
-                  >
+                  <th key={header} className="px-4 py-3 text-left whitespace-nowrap">
                     {header}
                   </th>
                 )
@@ -183,18 +181,15 @@ const OpenPosition = () => {
 
           <tbody className="bg-white divide-y divide-gray-200">
             {currentPositions.map((pos, index) => (
-              <tr
-                key={index}
-                className="hover:bg-gray-100 transition-colors duration-200 text-center"
-              >
-                <td className="px-6 py-4 whitespace-nowrap">{pos.login__login}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{pos.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{pos.group}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{pos.symbol}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{pos.volume}</td>
+              <tr key={index} className="hover:bg-gray-100 transition-colors duration-200">
+                <td className="px-4 py-3 whitespace-nowrap">{pos.login__login}</td>
+                <td className="px-4 py-3 whitespace-nowrap">{pos.name}</td>
+                <td className="px-4 py-3 whitespace-nowrap">{pos.group}</td>
+                <td className="px-4 py-3 whitespace-nowrap">{pos.symbol}</td>
+                <td className="px-4 py-3 whitespace-nowrap">{pos.volume}</td>
 
                 <td
-                  className={`px-6 py-4 whitespace-nowrap font-medium ${
+                  className={`px-4 py-3 whitespace-nowrap font-medium ${
                     parseFloat(pos.profit) >= 0
                       ? "text-green-600"
                       : "text-red-600"
@@ -209,7 +204,8 @@ const OpenPosition = () => {
       </div>
 
       {/* Pagination */}
-      <div className="flex justify-between items-center mt-4">
+      <div className="flex flex-col sm:flex-row justify-between items-center mt-4 gap-3">
+
         <div className="flex space-x-2">
           <button
             onClick={() => handlePageChange(currentPage - 1)}
@@ -251,7 +247,7 @@ const OpenPosition = () => {
         </div>
 
         <select
-          className="border px-2 py-1 rounded-md"
+          className="border px-2 py-1 rounded-md w-32"
           value={currentPage}
           onChange={(e) => handlePageChange(Number(e.target.value))}
         >
@@ -261,6 +257,7 @@ const OpenPosition = () => {
             </option>
           ))}
         </select>
+
       </div>
     </div>
   );

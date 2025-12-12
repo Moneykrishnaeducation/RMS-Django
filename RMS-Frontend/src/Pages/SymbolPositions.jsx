@@ -106,15 +106,17 @@ const SymbolPositions = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-50 rounded-xl shadow-xl">
-      <h2 className="text-2xl font-bold mb-5 text-gray-800">Symbol Positions</h2>
+    <div className="p-2 md:p-6 bg-gray-50 rounded-xl shadow-xl">
+      <h2 className="text-xl md:text-2xl font-bold mb-5 text-gray-800 text-center md:text-left">
+        Symbol Positions
+      </h2>
 
       {/* Symbol Select */}
-      <div className="flex gap-3 mb-5 flex-wrap">
+      <div className="flex flex-wrap gap-2 md:gap-3 mb-5 items-center">
         <select
           value={selectedSymbol}
           onChange={(e) => setSelectedSymbol(e.target.value)}
-          className="border px-4 py-2 rounded-md w-48 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="border px-3 md:px-4 py-2 rounded-md w-full sm:w-48 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
         >
           {symbols.map((sym) => (
             <option key={sym} value={sym}>
@@ -124,27 +126,29 @@ const SymbolPositions = () => {
         </select>
 
         {/* Filter Buttons */}
-        {["all", "buy", "sell"].map((btn) => (
-          <button
-            key={btn}
-            onClick={() => setFilter(btn)}
-            className={`px-5 py-2 rounded-lg font-semibold transition-colors duration-300 ${
-              filter === btn
-                ? "bg-blue-600 text-white shadow-lg"
-                : "bg-white text-gray-700 border hover:bg-gray-100"
-            }`}
-          >
-            {btn === "all" ? "All" : btn === "buy" ? "Buy" : "Sell"}
-          </button>
-        ))}
+        <div className="flex flex-wrap gap-2 md:gap-3">
+          {["all", "buy", "sell"].map((btn) => (
+            <button
+              key={btn}
+              onClick={() => setFilter(btn)}
+              className={`px-4 md:px-5 py-2 rounded-lg font-semibold transition-colors duration-300 ${
+                filter === btn
+                  ? "bg-blue-600 text-white shadow-lg"
+                  : "bg-white text-gray-700 border hover:bg-gray-100"
+              }`}
+            >
+              {btn === "all" ? "All" : btn === "buy" ? "Buy" : "Sell"}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Search Filters */}
-      <div className="flex gap-3 mb-5 flex-wrap">
+      <div className="flex flex-wrap gap-2 md:gap-3 mb-5">
         <input
           type="text"
           placeholder="Search Login..."
-          className="w-80 px-4 py-2 rounded-xl border border-gray-300 shadow-sm
+          className="flex-1 min-w-[150px] md:w-80 px-4 py-2 rounded-xl border border-gray-300 shadow-sm
             focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
           value={searchLogin}
           onChange={(e) => {
@@ -156,7 +160,7 @@ const SymbolPositions = () => {
         <input
           type="text"
           placeholder="Search Name..."
-          className="w-80 px-4 py-2 rounded-xl border border-gray-300 shadow-sm
+          className="flex-1 min-w-[150px] md:w-80 px-4 py-2 rounded-xl border border-gray-300 shadow-sm
             focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
           value={searchName}
           onChange={(e) => {
@@ -173,14 +177,14 @@ const SymbolPositions = () => {
         <p className="text-gray-500 text-center py-5">No matching data found.</p>
       ) : (
         <div className="overflow-x-auto rounded-xl shadow-lg border border-gray-200">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-indigo-600 text-white sticky top-0 z-10 uppercase text-sm">
+          <table className="min-w-full divide-y divide-gray-200 text-sm md:text-base">
+            <thead className="bg-indigo-600 text-white sticky top-0 z-10 uppercase text-xs md:text-sm">
               <tr>
                 {["Login", "Name", "Group", "Base Symbol", "Type", "Net Lot", "USD P&L"].map(
                   (header) => (
                     <th
                       key={header}
-                      className="px-6 py-3 text-left  font-semibold tracking-wider"
+                      className="px-3 md:px-6 py-2 md:py-3 text-left font-semibold tracking-wider"
                     >
                       {header}
                     </th>
@@ -195,12 +199,12 @@ const SymbolPositions = () => {
                   key={idx}
                   className="hover:bg-gray-50 transition duration-200 cursor-pointer"
                 >
-                  <td className="px-6 py-3">{row.Login}</td>
-                  <td className="px-6 py-3">{row.Name}</td>
-                  <td className="px-6 py-3">{row.Group}</td>
-                  <td className="px-6 py-3">{row.BaseSymbol}</td>
+                  <td className="px-3 md:px-6 py-2 md:py-3">{row.Login}</td>
+                  <td className="px-3 md:px-6 py-2 md:py-3">{row.Name}</td>
+                  <td className="px-3 md:px-6 py-2 md:py-3">{row.Group}</td>
+                  <td className="px-3 md:px-6 py-2 md:py-3">{row.BaseSymbol}</td>
                   <td
-                    className={`px-6 py-3 font-semibold ${
+                    className={`px-3 md:px-6 py-2 md:py-3 font-semibold ${
                       row.Type === "Buy"
                         ? "text-green-600"
                         : row.Type === "Sell"
@@ -210,9 +214,9 @@ const SymbolPositions = () => {
                   >
                     {row.Type}
                   </td>
-                  <td className="px-6 py-3">{row.NetLot.toFixed(2)}</td>
+                  <td className="px-3 md:px-6 py-2 md:py-3">{row.NetLot.toFixed(2)}</td>
                   <td
-                    className={`px-6 py-3 font-semibold ${
+                    className={`px-3 md:px-6 py-2 md:py-3 font-semibold ${
                       row.Profit >= 0 ? "text-green-600" : "text-red-600"
                     }`}
                   >
@@ -226,11 +230,11 @@ const SymbolPositions = () => {
       )}
 
       {/* Pagination */}
-      <div className="flex justify-center items-center mt-5 gap-4 flex-wrap">
+      <div className="flex justify-center items-center mt-5 gap-2 md:gap-4 flex-wrap">
         <button
           onClick={() => changePage(currentPage - 1)}
           disabled={currentPage === 1}
-          className="px-5 py-2 rounded-lg border bg-white shadow hover:bg-gray-100 disabled:opacity-50 transition-colors duration-300"
+          className="px-4 md:px-5 py-2 rounded-lg border bg-white shadow hover:bg-gray-100 disabled:opacity-50 transition-colors duration-300"
         >
           Prev
         </button>
@@ -242,7 +246,7 @@ const SymbolPositions = () => {
         <button
           onClick={() => changePage(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="px-5 py-2 rounded-lg border bg-white shadow hover:bg-gray-100 disabled:opacity-50 transition-colors duration-300"
+          className="px-4 md:px-5 py-2 rounded-lg border bg-white shadow hover:bg-gray-100 disabled:opacity-50 transition-colors duration-300"
         >
           Next
         </button>

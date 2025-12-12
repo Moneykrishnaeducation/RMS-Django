@@ -11,22 +11,28 @@ const MainPage = () => {
   return (
     <div className="min-h-screen bg-gray-100">
 
-      {/* Top Bar (mobile only) */}
-      <div className="md:hidden flex items-center justify-between bg-gray-800 text-white p-4 shadow">
+      {/* MOBILE TOP BAR */}
+      <div className="md:hidden flex items-center justify-between bg-gray-800 text-white p-4 shadow relative">
         <button onClick={toggleNavbar}>
           <FaBars size={22} />
         </button>
-        <h1 className="text-xl font-bold">RMS</h1>
+
+        <h1 className="absolute left-1/2 -translate-x-1/2 text-xl font-bold">RMS</h1>
       </div>
 
-      {/* Sidebar */}
+      {/* SIDEBAR */}
       <Navbar isOpen={isOpen} toggleNavbar={toggleNavbar} />
 
-      {/* Page Content */}
-      <div className="md:p-4 md:ml-64">
+      {/* PAGE CONTENT */}
+      <div className="md:ml-64">
+
+        {/* DESKTOP HEADING */}
+        <div className="flex hidden md:block items-center text-center justify-center bg-gray-800 text-white p-4 shadow">
+  <h1 className="text-xl font-bold">RMS</h1>
+</div>
+
         <Outlet />
       </div>
-
     </div>
   );
 };

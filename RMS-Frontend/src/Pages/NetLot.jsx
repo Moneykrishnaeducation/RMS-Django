@@ -53,7 +53,6 @@ const NetLot = () => {
             ? res.data.positions
             : [];
 
-        // Normalize data for all formats
         const df = rows.map((item) => ({
           symbol:
             item.symbol ||
@@ -76,7 +75,6 @@ const NetLot = () => {
             0,
         }));
 
-        // UNIQUE SYMBOL GROUPING
         const grouped = groupBySymbol(df);
 
         setData(grouped);
@@ -152,14 +150,14 @@ const NetLot = () => {
   if (loading) return <p className="p-6">Loading...</p>;
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-4xl font-bold mb-4 text-gray-800">
+    <div className="p-4 md:p-6 bg-gray-100 min-h-screen">
+      <h1 className="text-2xl md:text-4xl font-bold mb-4 text-gray-800 text-center md:text-left">
         📊 Net Lot Dashboard
       </h1>
 
       {/* Totals */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white shadow-lg p-5 inset-shodow-lg text-center rounded-lg">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-white shadow-lg p-5 text-center rounded-lg">
           <p className="text-gray-500">Total Symbols</p>
           <p className="text-2xl font-bold">{totals.totalSymbols}</p>
         </div>
@@ -180,11 +178,11 @@ const NetLot = () => {
       </div>
 
       {/* Search + CSV */}
-      <div className="flex justify-between mb-4">
+      <div className="flex flex-col sm:flex-row justify-between mb-4 gap-2">
         <input
           type="text"
           placeholder="Search symbol..."
-          className="w-80 px-4 py-2 rounded-xl border border-gray-300 shadow-sm
+          className="flex-1 min-w-[150px] px-4 py-2 rounded-xl border border-gray-300 shadow-sm
             focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -192,7 +190,7 @@ const NetLot = () => {
 
         <button
           onClick={downloadCSV}
-          className="bg-blue-500 text-white px-4 py-2 rounded"
+          className="bg-blue-500 text-white px-4 py-2 rounded w-full sm:w-auto"
         >
           📥 Download CSV
         </button>
@@ -200,25 +198,25 @@ const NetLot = () => {
 
       {/* Table */}
       <div className="bg-white shadow rounded-lg overflow-x-auto">
-        <table className="w-full table-auto">
+        <table className="min-w-full table-auto">
           <thead>
             <tr className="bg-indigo-700 text-white uppercase text-sm">
-              <th className="p-3">Symbol</th>
-              <th className="p-3">Net Lot</th>
-              <th className="p-3">USD P&L</th>
-            </tr>     </thead>
+              <th className="p-2 md:p-3 text-left">Symbol</th>
+              <th className="p-2 md:p-3 text-center">Net Lot</th>
+              <th className="p-2 md:p-3 text-center">USD P&L</th>
+            </tr>
+          </thead>
 
           <tbody>
             {filteredData.length ? (
               filteredData.map((d, idx) => (
-                <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
-                  <td className="p-2 ">{d.symbol}</td>
-                  <td className="p-2  text-center">
-                    {d.volume.toFixed(2)}
-                  </td>
-                  <td className="p-2 text-center">
-                    {d.profit.toFixed(2)}
-                  </td>
+                <tr
+                  key={idx}
+                  className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
+                >
+                  <td className="p-2 md:p-3">{d.symbol}</td>
+                  <td className="p-2 md:p-3 text-center">{d.volume.toFixed(2)}</td>
+                  <td className="p-2 md:p-3 text-center">{d.profit.toFixed(2)}</td>
                 </tr>
               ))
             ) : (

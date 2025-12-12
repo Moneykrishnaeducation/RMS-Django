@@ -30,7 +30,6 @@ const MatrixLot = () => {
 
       setSymbols(uniqueSymbols);
 
-      // Construct matrix rows
       const table = uniqueLogins.map(login => {
         const row = { login };
         uniqueSymbols.forEach(symbol => {
@@ -40,13 +39,11 @@ const MatrixLot = () => {
         return row;
       });
 
-      // Total row
       const total = { login: "All Login" };
       uniqueSymbols.forEach(symbol => {
         const sum = raw
           .filter(x => x.symbol === symbol)
           .reduce((a, b) => a + parseFloat(b.lot), 0);
-
         total[symbol] = sum ? sum.toFixed(2) : "";
       });
 
@@ -60,7 +57,6 @@ const MatrixLot = () => {
     }
   };
 
-  // 🔍 FILTER MATRIX BY LOGIN
   const filteredMatrix = useMemo(() => {
     return matrix.filter(row =>
       row.login.toString().toLowerCase().includes(searchLogin.toLowerCase())
@@ -83,7 +79,7 @@ const MatrixLot = () => {
   };
 
   return (
-    <div className="p-8">
+    <div className="p-2">
 
       {/* TITLE */}
       <h2 className="text-3xl font-extrabold mb-6 flex items-center gap-3">
@@ -93,7 +89,7 @@ const MatrixLot = () => {
         </span>
       </h2>
 
-      {/* 🔍 SEARCH BAR */}
+      {/* SEARCH BAR */}
       <div className="mb-6">
         <input
           type="text"
@@ -101,10 +97,10 @@ const MatrixLot = () => {
           value={searchLogin}
           onChange={(e) => {
             setSearchLogin(e.target.value);
-            setCurrentPage(1); // reset page on search
+            setCurrentPage(1);
           }}
           className="
-            w-80 px-4 py-2 rounded-xl border border-gray-300 shadow-sm
+            w-full md:w-80 px-4 py-2 rounded-xl border border-gray-300 shadow-sm
             focus:ring-2 focus:ring-blue-400 focus:outline-none transition
           "
         />
@@ -115,17 +111,13 @@ const MatrixLot = () => {
           Loading data...
         </div>
       ) : (
-        <div className="
-          rounded-2xl border border-white/20 shadow-2xl 
-          backdrop-blur-xl bg-white/50 overflow-hidden
-        ">
+        <div className="rounded-2xl border border-white/20 shadow-2xl backdrop-blur-xl bg-white/50 overflow-hidden">
 
-          <div className="overflow-auto max-h-[75vh]">
-            <table className="w-full table-auto">
-
+          <div className="overflow-auto max-h-[70vh]">
+            <table className="min-w-max w-full table-auto border-collapse">
               <thead className="bg-indigo-600 text-white uppercase text-sm">
                 <tr>
-                  <th className="bg-indigo-600 text-white uppercase text-sm">
+                  <th className="sticky left-0 z-20 bg-indigo-600 px-4 py-2 text-center">
                     Login
                   </th>
                   {symbols.map(symbol => (
@@ -139,10 +131,9 @@ const MatrixLot = () => {
               </thead>
 
               <tbody>
-
                 {/* TOTAL ROW */}
                 <tr className="bg-blue-50 font-bold border-b border-gray-400">
-                  <td className="hover:bg-gray-50 text-center transition-colors">
+                  <td className="sticky left-0 bg-blue-50 px-4 py-2 text-center z-10 font-medium">
                     All Login
                   </td>
                   {symbols.map(symbol => (
@@ -152,15 +143,13 @@ const MatrixLot = () => {
                   ))}
                 </tr>
 
-                {/* ROWS */}
+                {/* DATA ROWS */}
                 {paginated.map((row, idx) => (
                   <tr
                     key={idx}
-                    className={`transition ${
-                      idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                    } hover:bg-gray-100`}
+                    className={`${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-gray-100 transition-colors`}
                   >
-                    <td className="rounded-lg px-4 border-b text-center border-gray-400 py-2 sticky left-0 bg-white font-medium shadow-sm">
+                    <td className="sticky left-0 bg-white px-4 py-2 text-center font-medium z-10 border-r border-gray-300 shadow-sm">
                       {row.login}
                     </td>
 
@@ -176,24 +165,20 @@ const MatrixLot = () => {
                 ))}
 
               </tbody>
-
             </table>
           </div>
 
           {/* PAGINATION */}
-          <div className="flex items-center justify-between p-4 bg-gray-100 border-t">
-
+          <div className="flex flex-col md:flex-row items-center justify-between p-4 bg-gray-100 border-t gap-2 md:gap-0">
             <div className="text-sm text-gray-600">
               Page <b>{currentPage}</b> of <b>{totalPages}</b>
             </div>
 
-            <div className="flex gap-2">
-
+            <div className="flex gap-2 flex-wrap">
               <button
                 onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
                 disabled={currentPage === 1}
-                className="px-4 py-2 rounded-lg text-sm font-medium shadow-md
-                  bg-white hover:bg-gray-200 disabled:bg-gray-300 disabled:text-gray-500"
+                className="px-4 py-2 rounded-lg text-sm font-medium shadow-md bg-white hover:bg-gray-200 disabled:bg-gray-300 disabled:text-gray-500"
               >
                 ← Prev
               </button>
@@ -202,12 +187,8 @@ const MatrixLot = () => {
                 <button
                   key={i}
                   onClick={() => setCurrentPage(i + 1)}
-                  className={`
-                    px-3 py-1 rounded-md text-sm font-bold transition 
-                    ${currentPage === i + 1 
-                      ? "bg-blue-600 text-white shadow-md" 
-                      : "bg-white hover:bg-gray-200"}
-                  `}
+                  className={`px-3 py-1 rounded-md text-sm font-bold transition 
+                    ${currentPage === i + 1 ? "bg-blue-600 text-white shadow-md" : "bg-white hover:bg-gray-200"}`}
                 >
                   {i + 1}
                 </button>
@@ -216,12 +197,10 @@ const MatrixLot = () => {
               <button
                 onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className="px-4 py-2 rounded-lg text-sm font-medium shadow-md
-                  bg-white hover:bg-gray-200 disabled:bg-gray-300 disabled:text-gray-500"
+                className="px-4 py-2 rounded-lg text-sm font-medium shadow-md bg-white hover:bg-gray-200 disabled:bg-gray-300 disabled:text-gray-500"
               >
                 Next →
               </button>
-
             </div>
           </div>
 

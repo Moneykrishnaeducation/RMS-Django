@@ -20,9 +20,7 @@ const XAUUSDPositions = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const posRes = await axios.get(
-          "/api/positions/open/"
-        );
+        const posRes = await axios.get("/api/positions/open/");
         const accRes = await axios.get("/api/accounts/db/");
 
         const posData = posRes.data?.positions || [];
@@ -78,14 +76,12 @@ const XAUUSDPositions = () => {
     setTableData(finalData);
   }, [positions, accounts, filter]);
 
-  // Filtering
   const filteredTable = tableData.filter((item) => {
     const matchLogin = searchLogin ? String(item.Login).includes(searchLogin) : true;
     const matchName = searchName ? item.Name.toLowerCase().includes(searchName.toLowerCase()) : true;
     return matchLogin && matchName;
   });
 
-  // Pagination
   const totalPages = Math.ceil(filteredTable.length / itemsPerPage);
   const paginatedData = filteredTable.slice(
     (currentPage - 1) * itemsPerPage,
@@ -97,16 +93,18 @@ const XAUUSDPositions = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-50 rounded-xl shadow-xl">
-      <h2 className="text-2xl font-bold mb-5 text-gray-800">XAUUSD Positions</h2>
+    <div className="p-2 sm:p-6 bg-gray-50 rounded-xl shadow-xl w-full">
+      <h2 className="text-xl sm:text-2xl font-bold mb-5 text-gray-800 text-center sm:text-left">
+        XAUUSD Positions
+      </h2>
 
       {/* Filter Buttons */}
-      <div className="flex gap-3 mb-5 flex-wrap">
+      <div className="flex gap-3 mb-5 flex-wrap justify-center sm:justify-start">
         {["all", "buy", "sell"].map((btn) => (
           <button
             key={btn}
             onClick={() => setFilter(btn)}
-            className={`px-5 py-2 rounded-lg font-semibold transition-colors duration-300 ${
+            className={`px-4 py-2 sm:px-5 rounded-lg font-semibold transition-colors duration-300 text-sm sm:text-base ${
               filter === btn
                 ? "bg-blue-600 text-white shadow-lg"
                 : "bg-white text-gray-700 border hover:bg-gray-100"
@@ -118,11 +116,11 @@ const XAUUSDPositions = () => {
       </div>
 
       {/* Search Filters */}
-      <div className="flex gap-3 mb-5 flex-wrap">
+      <div className="flex flex-col sm:flex-row gap-3 mb-5">
         <input
           type="text"
           placeholder="Search Login..."
-          className="border px-4 py-2 rounded-md w-48 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="border px-4 py-2 rounded-md w-full sm:w-48 focus:outline-none focus:ring-2 focus:ring-blue-400"
           value={searchLogin}
           onChange={(e) => {
             setSearchLogin(e.target.value);
@@ -133,7 +131,7 @@ const XAUUSDPositions = () => {
         <input
           type="text"
           placeholder="Search Name..."
-          className="border px-4 py-2 rounded-md w-64 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="border px-4 py-2 rounded-md w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-blue-400"
           value={searchName}
           onChange={(e) => {
             setSearchName(e.target.value);
@@ -149,14 +147,14 @@ const XAUUSDPositions = () => {
         <p className="text-gray-500 text-center py-5">No matching data found.</p>
       ) : (
         <div className="overflow-x-auto rounded-xl shadow-lg border border-gray-200">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-indigo-600 text-white sticky top-0 z-10 uppercase text-sm">
+          <table className="min-w-full divide-y divide-gray-200 text-sm">
+            <thead className="bg-indigo-600 text-white sticky top-0 z-10 uppercase text-xs sm:text-sm">
               <tr>
                 {["Login", "Name", "Group", "Base Symbol", "Type", "Net Lot", "USD P&L"].map(
                   (header) => (
                     <th
                       key={header}
-                      className="px-6 py-3 text-left font-semibold racking-wider"
+                      className="px-4 sm:px-6 py-3 text-left font-semibold tracking-wider whitespace-nowrap"
                     >
                       {header}
                     </th>
@@ -169,14 +167,15 @@ const XAUUSDPositions = () => {
               {paginatedData.map((row, idx) => (
                 <tr
                   key={idx}
-                  className="hover:bg-gray-50 transition duration-200 cursor-pointer"
+                  className="hover:bg-gray-50 transition duration-200"
                 >
-                  <td className="px-6 py-3">{row.Login}</td>
-                  <td className="px-6 py-3">{row.Name}</td>
-                  <td className="px-6 py-3">{row.Group}</td>
-                  <td className="px-6 py-3">{row.BaseSymbol}</td>
+                  <td className="px-4 sm:px-6 py-3 whitespace-nowrap">{row.Login}</td>
+                  <td className="px-4 sm:px-6 py-3 whitespace-nowrap">{row.Name}</td>
+                  <td className="px-4 sm:px-6 py-3 whitespace-nowrap">{row.Group}</td>
+                  <td className="px-4 sm:px-6 py-3 whitespace-nowrap">{row.BaseSymbol}</td>
+
                   <td
-                    className={`px-6 py-3 font-semibold ${
+                    className={`px-4 sm:px-6 py-3 font-semibold whitespace-nowrap ${
                       row.Type === "Buy"
                         ? "text-green-600"
                         : row.Type === "Sell"
@@ -186,9 +185,13 @@ const XAUUSDPositions = () => {
                   >
                     {row.Type}
                   </td>
-                  <td className="px-6 py-3">{row.NetLot.toFixed(2)}</td>
+
+                  <td className="px-4 sm:px-6 py-3 whitespace-nowrap">
+                    {row.NetLot.toFixed(2)}
+                  </td>
+
                   <td
-                    className={`px-6 py-3 font-semibold ${
+                    className={`px-4 sm:px-6 py-3 font-semibold whitespace-nowrap ${
                       row.Profit >= 0 ? "text-green-600" : "text-red-600"
                     }`}
                   >
@@ -206,19 +209,19 @@ const XAUUSDPositions = () => {
         <button
           onClick={() => changePage(currentPage - 1)}
           disabled={currentPage === 1}
-          className="px-5 py-2 rounded-lg border bg-white shadow hover:bg-gray-100 disabled:opacity-50 transition-colors duration-300"
+          className="px-4 py-2 rounded-lg border bg-white shadow hover:bg-gray-100 disabled:opacity-50 transition-colors duration-300"
         >
           Prev
         </button>
 
-        <span className="font-semibold text-gray-700">
+        <span className="font-semibold text-gray-700 text-sm sm:text-base">
           Page {currentPage} of {totalPages}
         </span>
 
         <button
           onClick={() => changePage(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="px-5 py-2 rounded-lg border bg-white shadow hover:bg-gray-100 disabled:opacity-50 transition-colors duration-300"
+          className="px-4 py-2 rounded-lg border bg-white shadow hover:bg-gray-100 disabled:opacity-50 transition-colors duration-300"
         >
           Next
         </button>

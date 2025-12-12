@@ -22,6 +22,7 @@ const Groups = () => {
           accounts = res.data.results;
         }
         setData(accounts);
+
         if (accounts.length && !selectedGroup) {
           setSelectedGroup(accounts[0].group || "");
         }
@@ -34,7 +35,7 @@ const Groups = () => {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 15000); // 15 sec auto-refresh
+    const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
   }, [selectedGroup]);
 
@@ -43,7 +44,7 @@ const Groups = () => {
     new Set(data.map((d) => d.group).filter(Boolean))
   ).sort();
 
-  // Filter data by selected group
+  // Filter by group
   const filteredData = selectedGroup
     ? data.filter((d) => d.group === selectedGroup)
     : [];
@@ -52,15 +53,19 @@ const Groups = () => {
   if (!data.length) return <p className="p-6">No data available.</p>;
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h2 className="text-3xl font-bold mb-6 text-gray-800">Groups Overview</h2>
+    <div className="p-2 sm:p-6 bg-gray-100 min-h-screen">
+      <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-gray-800 text-center sm:text-left">
+        Groups Overview
+      </h2>
 
       {/* Group selection */}
       {groupsList.length ? (
         <div className="mb-6">
-          <label className="block mb-2 font-medium text-gray-700">Select Group:</label>
+          <label className="block mb-2 font-medium text-gray-700 text-sm sm:text-base">
+            Select Group:
+          </label>
           <select
-            className="p-2 border border-gray-300 rounded-md w-full max-w-sm"
+            className="p-2 border border-gray-300 rounded-md w-full max-w-full sm:max-w-sm bg-white text-gray-700"
             value={selectedGroup}
             onChange={(e) => setSelectedGroup(e.target.value)}
           >
@@ -77,36 +82,52 @@ const Groups = () => {
 
       {/* Group summary */}
       {selectedGroup && (
-        <div className="mb-6 bg-white shadow rounded-lg p-4 border border-gray-200">
-          <p className="text-gray-600 font-medium">Group: <span className="font-semibold">{selectedGroup}</span></p>
-          <p className="text-gray-600 font-medium mt-2">Total Accounts: <span className="font-semibold">{filteredData.length}</span></p>
+        <div className="mb-6 bg-white shadow rounded-lg p-4 border border-gray-200 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+          <p className="text-gray-600 font-medium text-sm sm:text-base">
+            Group: <span className="font-semibold">{selectedGroup}</span>
+          </p>
+          <p className="text-gray-600 font-medium mt-1 sm:mt-0 text-sm sm:text-base">
+            Total Accounts: <span className="font-semibold">{filteredData.length}</span>
+          </p>
         </div>
       )}
 
       {/* Data Table */}
       {filteredData.length ? (
         <div className="bg-white shadow rounded-lg overflow-x-auto">
-          <table className="w-full table-auto ">
-            <thead className="bg-indigo-600 text-white uppercase ">
+          <table className="min-w-[500px] sm:min-w-[650px] w-full table-auto text-sm">
+            <thead className="bg-indigo-600 text-white uppercase text-xs sm:text-sm">
               <tr>
-                {["Login", "Name", "Profit", "Balance", "Equity"].map((header) => (
-                  <th
-                    key={header}
-                    className="p-3 border-b text-left text-white font-medium"
-                  >
-                    {header}
-                  </th>
-                ))}
+                {["Login", "Name", "Profit", "Balance", "Equity"].map(
+                  (header) => (
+                    <th
+                      key={header}
+                      className="p-3 border-b text-left font-medium whitespace-nowrap"
+                    >
+                      {header}
+                    </th>
+                  )
+                )}
               </tr>
             </thead>
+
             <tbody>
               {filteredData.map((row, idx) => (
-                <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
-                  <td className="p-2">{row.login || "-"}</td>
-                  <td className="p-2">{row.name || "-"}</td>
-                  <td className="p-2">{Number(row.profit || 0).toFixed(2)}</td>
-                  <td className="p-2">{Number(row.balance || 0).toFixed(2)}</td>
-                  <td className="p-2">{Number(row.equity || 0).toFixed(2)}</td>
+                <tr
+                  key={idx}
+                  className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
+                >
+                  <td className="p-2 whitespace-nowrap">{row.login || "-"}</td>
+                  <td className="p-2 whitespace-nowrap">{row.name || "-"}</td>
+                  <td className="p-2 whitespace-nowrap">
+                    {Number(row.profit || 0).toFixed(2)}
+                  </td>
+                  <td className="p-2 whitespace-nowrap">
+                    {Number(row.balance || 0).toFixed(2)}
+                  </td>
+                  <td className="p-2 whitespace-nowrap">
+                    {Number(row.equity || 0).toFixed(2)}
+                  </td>
                 </tr>
               ))}
             </tbody>

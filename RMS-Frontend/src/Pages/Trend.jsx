@@ -26,11 +26,9 @@ const Trend = () => {
       const res = await axios.get(API_URL);
       const raw = res.data.data;
 
-      // Get unique symbols
       const uniqueSymbols = [...new Set(raw.map(i => i.symbol))];
       setSymbols(uniqueSymbols);
 
-      // Aggregate data per login for each symbol
       const loginIds = [...new Set(raw.map(i => i.login_id))];
 
       const dataPerSymbol = uniqueSymbols.map(symbol => {
@@ -53,32 +51,32 @@ const Trend = () => {
     }
   };
 
-  if (loading) return <p className="text-gray-500 animate-pulse">Loading charts...</p>;
+  if (loading) return <p className="text-gray-500 animate-pulse p-6 text-center">Loading charts...</p>;
 
   return (
-    <div className="p-6  col-2 space-y-8">
-      <h2 className="text-2xl font-bold mb-4">Lot Trend per Symbol</h2>
+    <div className="p-2 md:p-6 space-y-6 md:space-y-8">
+      <h2 className="text-2xl md:text-3xl font-bold mb-4 text-center md:text-left">Lot Trend per Symbol</h2>
 
       {chartData.map((symbolChart, idx) => (
         <div
           key={symbolChart.symbol}
-          className="p-4 bg-white/60 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200"
+          className="p-4 md:p-6 bg-white/60 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200 w-full"
         >
-          <h3 className="text-xl font-semibold mb-2">{symbolChart.symbol}</h3>
-          <ResponsiveContainer width="100%" height={300}>
+          <h3 className="text-lg md:text-xl font-semibold mb-2">{symbolChart.symbol}</h3>
+          <ResponsiveContainer width="100%" height={250}>
             <LineChart
               data={symbolChart.data}
-              margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+              margin={{ top: 20, right: 20, left: 0, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="login" />
-              <YAxis />
+              <XAxis dataKey="login" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} />
               <Tooltip />
               <Line
                 type="monotone"
                 dataKey="lot"
                 stroke={getColor(idx)}
-                activeDot={{ r: 6 }}
+                activeDot={{ r: 5 }}
               />
             </LineChart>
           </ResponsiveContainer>

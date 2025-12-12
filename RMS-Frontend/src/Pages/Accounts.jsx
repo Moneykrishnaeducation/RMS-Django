@@ -108,7 +108,7 @@ const Accounts = () => {
   if (loading) return <div className="p-10 text-lg font-semibold">Loading...</div>;
 
   return (
-    <div className="space-y-12 bg-gray-50 min-h-screen">
+    <div className="p-2 space-y-12 bg-gray-50 min-h-screen">
       {/* SECTION 1 — Explore Accounts */}
       <div className=" md:p-4 rounded-2xl shadow-xl border-gray-200">
         <h2 className="text-2xl font-bold text-gray-800 mb-6">
