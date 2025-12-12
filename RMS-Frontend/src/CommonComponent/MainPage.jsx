@@ -35,8 +35,7 @@ const MainPage = () => {
              text-2xl font-extrabold tracking-wide 
              bg-gradient-to-r from-yellow-300 to-yellow-600 
              bg-clip-text text-transparent"
->
-  RMS
+>RMS
 </h1>
 
 </div>
