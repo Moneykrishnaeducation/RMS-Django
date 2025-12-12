@@ -65,7 +65,7 @@ const Groups = () => {
     Select Group:
   </label>
   <select
-    className="p-2 border border-gray-300 rounded-md w-full max-w-xs sm:max-w-sm bg-white text-gray-700 truncate text-sm"
+    className="p-2 border border-gray-300 rounded-md w-full max-w-[280px] sm:max-w-sm bg-white text-gray-700 truncate text-sm"
     value={selectedGroup}
     onChange={(e) => setSelectedGroup(e.target.value)}
   >

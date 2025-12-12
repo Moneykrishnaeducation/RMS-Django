@@ -116,7 +116,7 @@ const SymbolPositions = () => {
         <select
           value={selectedSymbol}
           onChange={(e) => setSelectedSymbol(e.target.value)}
-          className="border px-3 md:px-4 py-2 rounded-md w-full sm:w-48 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+          className="p-2 border border-gray-300 rounded-md w-full max-w-[280px] sm:max-w-sm bg-white text-gray-700 truncate text-sm"
         >
           {symbols.map((sym) => (
             <option key={sym} value={sym}>

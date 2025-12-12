@@ -227,38 +227,38 @@ const OpenPosition = () => {
         </div>
 
         <div className="flex space-x-1">
-          {paginationNumbers().map((page, idx) =>
-            page === "..." ? (
-              <span key={idx} className="px-3 py-1 text-gray-500">
-                ...
-              </span>
-            ) : (
-              <button
-                key={idx}
-                onClick={() => handlePageChange(page)}
-                className={`px-3 py-1 rounded-md border ${
-                  currentPage === page
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-                }`}
-              >
-                {page}
-              </button>
-            )
-          )}
-        </div>
-
-        <select
-          className="border px-2 py-1 rounded-md w-32"
-          value={currentPage}
-          onChange={(e) => handlePageChange(Number(e.target.value))}
+    {paginationNumbers().map((page, idx) =>
+      page === "..." ? (
+        <span key={idx} className="px-2 py-1 text-gray-500">
+          ...
+        </span>
+      ) : (
+        <button
+          key={idx}
+          onClick={() => handlePageChange(page)}
+          className={`px-3 py-1 rounded-md border ${
+            currentPage === page
+              ? "bg-blue-600 text-white border-blue-600"
+              : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+          }`}
         >
-          {Array.from({ length: totalPages }, (_, i) => (
-            <option key={i + 1} value={i + 1}>
-              Page {i + 1}
-            </option>
-          ))}
-        </select>
+          {page}
+        </button>
+      )
+    )}
+  </div>
+
+         {/* <select
+    className="border px-2 py-1 rounded-md w-20 truncate text-center"
+    value={currentPage}
+    onChange={(e) => handlePageChange(Number(e.target.value))}
+  >
+    {Array.from({ length: totalPages }, (_, i) => (
+      <option key={i + 1} value={i + 1}>
+        Page {i + 1}
+      </option>
+    ))}
+  </select> */}
 
       </div>
     </div>
