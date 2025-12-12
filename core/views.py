@@ -25,6 +25,7 @@ from django.utils import timezone
 from .models import Accounts, OpenPositions
 from django.db.models import Sum
 from .models import Accounts, OpenPositions, ClosedPositions
+from .models import ServerSetting
 
 
 from datetime import datetime, timezone
@@ -1031,6 +1032,41 @@ class ServerDetailsView(APIView):
         }
         return Response(server_details, status=status.HTTP_200_OK)
 
+@csrf_exempt  # Only use csrf_exempt for testing or APIs without CSRF tokens
+def add_server_setting(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            server_ip = data.get('server_ip')
+            real_account_login = data.get('real_account_login')
+            real_account_password = data.get('real_account_password')
+            server_name_client = data.get('server_name_client')
+
+            server_setting = ServerSetting.objects.create(
+                server_ip=server_ip,
+                real_account_login=real_account_login,
+                real_account_password=real_account_password,
+                server_name_client=server_name_client
+            )
+
+            return JsonResponse({
+                "success": True,
+                "message": "Server setting created successfully",
+                "server_id": server_setting.id
+            }, status=201)
+
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=400)
+    else:
+        return JsonResponse({"success": False, "error": "POST request required"}, status=405)
+
+
+def get_server_settings(request):
+    if request.method == 'GET':
+        data = list(ServerSetting.objects.values())
+        return JsonResponse({"success": True, "data": data}, safe=False)
+
+    return JsonResponse({"success": False, "error": "GET required"}, status=405)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ServerSettingsAPIView(APIView):
