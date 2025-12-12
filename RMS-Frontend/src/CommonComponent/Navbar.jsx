@@ -25,6 +25,7 @@ const Navbar = ({ isOpen, toggleNavbar }) => {
     { name: "XAUUSD", to: "/xauusd", icon: <FaDollarSign /> },
     { name: "File Management", to: "/filemanagement", icon: <FaFile /> },
     { name: "Watch Manager", to: "/watchmanager", icon: <FaEye /> },
+    { name: "Server", to: "/servers", icon: <FaEye /> },
   ];
 
   return (

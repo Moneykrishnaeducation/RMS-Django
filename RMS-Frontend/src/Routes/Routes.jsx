@@ -18,6 +18,7 @@ import XAUUSD from '../Pages/Xauusd';
 import FileManagement from '../Pages/FileManagement';
 import WatchManager from '../Pages/WatchManager';
 import SymbolPositions from '../Pages/SymbolPositions';
+import Servers from '../Pages/Servers';
 
 const AppRoutes = () => {
   return (
@@ -43,8 +44,9 @@ const AppRoutes = () => {
           <Route path="filemanagement" element={<FileManagement />} />
           <Route path="watchmanager" element={<WatchManager />} />
           <Route path="symbolPositions" element={<SymbolPositions />} />
-          
-          
+          <Route path="servers" element={<Servers />} />
+
+
         </Route>
       </Routes>
     </Router>
