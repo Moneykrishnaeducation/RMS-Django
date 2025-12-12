@@ -34,18 +34,21 @@ const MatrixLot = () => {
         const row = { login };
         uniqueSymbols.forEach(symbol => {
           const item = raw.find(x => x.login_id === login && x.symbol === symbol);
-          row[symbol] = item ? parseFloat(item.lot).toFixed(2) : "";
+          row[symbol] = item ? parseFloat(item.net_lot).toFixed(2) : "";
         });
         return row;
       });
+
 
       const total = { login: "All Login" };
       uniqueSymbols.forEach(symbol => {
         const sum = raw
           .filter(x => x.symbol === symbol)
-          .reduce((a, b) => a + parseFloat(b.lot), 0);
+          .reduce((a, b) => a + parseFloat(b.net_lot), 0);
+
         total[symbol] = sum ? sum.toFixed(2) : "";
       });
+
 
       setTotalRow(total);
       setMatrix(table);

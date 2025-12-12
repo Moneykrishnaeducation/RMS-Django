@@ -1,3 +1,4 @@
+import logging
 import os
 import MT5Manager
 import time
@@ -7,7 +8,6 @@ from datetime import datetime
 import django
 from django.conf import settings
 
-import logging
 logger = logging.getLogger(__name__)
 
 # Configure Django settings
@@ -207,10 +207,6 @@ class MT5Service:
                 'margin_level': float(getattr(account, 'MarginLevel', 0.0)),
                 'profit': float(getattr(account, 'Profit', 0.0)),
                 'group': getattr(user, 'Group', None),
-                'volume': getattr(user,'total_lot', 0) ,
-                'volume1': getattr(user, 'net_Lot', 0) ,
-                'volume2': getattr(user, 'NetLot', 0) ,
-                'volume3': getattr(user,  'TotalLot', 0) ,
                 'leverage': getattr(user, 'Leverage', None),
                 'rights': getattr(user, 'Rights', None),
                 'last_access': getattr(user, 'LastAccess', None),
@@ -408,22 +404,30 @@ class MT5Service:
         """Return list of closed deals for the given login id."""
         mgr = self.connect()
         try:
-            deals = mgr.DealGet(int(login_id))
-            if not deals:
+            total = mgr.DealTotal()
+            if not total:
                 return []
             out = []
-            for d in deals:
-                out.append({
-                    'Deal': getattr(d, 'Deal', None),
-                    'Login': getattr(d, 'Login', None),
-                    'Symbol': getattr(d, 'Symbol', None),
-                    'Profit': getattr(d, 'Profit', None),
-                    'Volume': round(getattr(d, 'Volume', 0) / 10000, 2),
-                    'Price': getattr(d, 'Price', None),
-                    'Time': getattr(d, 'Time', None),
-                    'Type': getattr(d, 'Action', None),
-                    'Entry': getattr(d, 'Entry', None),
-                })
+            for i in range(total):
+                try:
+                    d = mgr.DealNext(i)
+                    if not d:
+                        continue
+                    if getattr(d, 'Login', None) != int(login_id):
+                        continue
+                    out.append({
+                        'Deal': getattr(d, 'Deal', None),
+                        'Login': getattr(d, 'Login', None),
+                        'Symbol': getattr(d, 'Symbol', None),#
+                        'Profit': getattr(d, 'Profit', None),#
+                        'Volume': round(getattr(d, 'Volume', 0) / 10000, 2),#
+                        'Price': getattr(d, 'Price', None),
+                        'Time': getattr(d, 'Time', None),
+                        'Type': getattr(d, 'Action', None),#
+                        'Entry': getattr(d, 'Entry', None),
+                    })
+                except Exception:
+                    continue
             return out
         except Exception:
             return []
@@ -443,6 +447,7 @@ class MT5Service:
             elif email and email.lower() in acc_email:
                 results.append(acc)
         return results
+    
     def get_closed_trades(self, login_id, from_date=None, to_date=None, auto_process_commission=False):
         """
         Fetch closed trades (deals) for a given MT5 account login_id and date range.
@@ -514,6 +519,7 @@ class MT5Service:
                 pass
         
         return closed_deals
+
 
 if __name__ == '__main__':
     import argparse
