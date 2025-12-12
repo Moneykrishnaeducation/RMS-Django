@@ -100,10 +100,22 @@ const FileManagement = () => {
     });
   };
 
-  const handleLogin = (server) => {
-    // For now, just log the server details. You can implement actual login logic here
-    console.log("Login to server:", server);
-    alert(`Login to server: ${server.server_name_client} (${server.server_ip})`);
+  const handleLogin = async (server) => {
+    try {
+      const response = await fetch(`/api/get-server/${server.id}/`, {
+        method: 'GET',
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setMessage(`Successfully logged in to server: ${server.server_name_client}`);
+      } else {
+        setMessage(data.error || "Failed to login to server.");
+      }
+    } catch (error) {
+      setMessage("Network error. Please try again.");
+    }
   };
 
   return (
