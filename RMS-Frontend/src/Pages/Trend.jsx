@@ -24,11 +24,13 @@ const Trend = () => {
   const fetchChartData = async () => {
     try {
       const res = await axios.get(API_URL);
-      const raw = res.data.data;
+      const raw = res.data.data; // your API structure
 
+      // Extract symbols
       const uniqueSymbols = [...new Set(raw.map(i => i.symbol))];
       setSymbols(uniqueSymbols);
 
+      // Extract login IDs
       const loginIds = [...new Set(raw.map(i => i.login_id))];
 
       const dataPerSymbol = uniqueSymbols.map(symbol => {
@@ -38,7 +40,13 @@ const Trend = () => {
             const item = raw.find(
               x => x.login_id === login && x.symbol === symbol
             );
-            return { login: login.toString(), lot: item ? parseFloat(item.lot) : 0 };
+
+            return {
+              login: login.toString(),
+
+              // ⭐ Use net_lot for graph here
+              lot: item ? parseFloat(item.net_lot) : 0
+            };
           }),
         };
       });
@@ -51,18 +59,28 @@ const Trend = () => {
     }
   };
 
-  if (loading) return <p className="text-gray-500 animate-pulse p-6 text-center">Loading charts...</p>;
+  if (loading)
+    return (
+      <p className="text-gray-500 animate-pulse p-6 text-center">
+        Loading charts...
+      </p>
+    );
 
   return (
     <div className="p-2 md:p-6 space-y-6 md:space-y-8">
-      <h2 className="text-2xl md:text-3xl font-bold mb-4 text-center md:text-left">Lot Trend per Symbol</h2>
+      <h2 className="text-2xl md:text-3xl font-bold mb-4 text-center md:text-left">
+        Lot Trend per Symbol
+      </h2>
 
       {chartData.map((symbolChart, idx) => (
         <div
           key={symbolChart.symbol}
           className="p-4 md:p-6 bg-white/60 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200 w-full"
         >
-          <h3 className="text-lg md:text-xl font-semibold mb-2">{symbolChart.symbol}</h3>
+          <h3 className="text-lg md:text-xl font-semibold mb-2">
+            {symbolChart.symbol}
+          </h3>
+
           <ResponsiveContainer width="100%" height={250}>
             <LineChart
               data={symbolChart.data}
@@ -72,6 +90,7 @@ const Trend = () => {
               <XAxis dataKey="login" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} />
               <Tooltip />
+
               <Line
                 type="monotone"
                 dataKey="lot"
@@ -86,12 +105,19 @@ const Trend = () => {
   );
 };
 
-// Helper function to get color for each line
+// Color helper
 const getColor = idx => {
   const colors = [
-    "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
-    "#9467bd", "#8c564b", "#e377c2", "#7f7f7f",
-    "#bcbd22", "#17becf"
+    "#1f77b4",
+    "#ff7f0e",
+    "#2ca02c",
+    "#d62728",
+    "#9467bd",
+    "#8c564b",
+    "#e377c2",
+    "#7f7f7f",
+    "#bcbd22",
+    "#17becf",
   ];
   return colors[idx % colors.length];
 };
