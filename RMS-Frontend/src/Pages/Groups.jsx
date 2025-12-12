@@ -60,22 +60,23 @@ const Groups = () => {
 
       {/* Group selection */}
       {groupsList.length ? (
-        <div className="mb-6">
-          <label className="block mb-2 font-medium text-gray-700 text-sm sm:text-base">
-            Select Group:
-          </label>
-          <select
-            className="p-2 border border-gray-300 rounded-md w-full max-w-full sm:max-w-sm bg-white text-gray-700"
-            value={selectedGroup}
-            onChange={(e) => setSelectedGroup(e.target.value)}
-          >
-            {groupsList.map((group) => (
-              <option key={group} value={group}>
-                {group}
-              </option>
-            ))}
-          </select>
-        </div>
+        <div className="mb-4">
+  <label className="block mb-1 text-gray-700 text-sm">
+    Select Group:
+  </label>
+  <select
+    className="p-2 border border-gray-300 rounded-md w-full max-w-xs sm:max-w-sm bg-white text-gray-700 truncate text-sm"
+    value={selectedGroup}
+    onChange={(e) => setSelectedGroup(e.target.value)}
+  >
+    {groupsList.map((group) => (
+      <option key={group} value={group} title={group}>
+        {group.length > 20 ? `${group.substring(0, 20)}...` : group}
+      </option>
+    ))}
+  </select>
+</div>
+
       ) : (
         <p className="text-gray-500 mb-6">No groups available.</p>
       )}
