@@ -85,7 +85,7 @@ const ProfitLoss = () => {
     return filteredData.slice(start, start + rowsPerPage);
   }, [filteredData, currentPage]);
 
-  if (loading) return <p className="p-6 text-center">Loading...</p>;
+  if (loading) return <Loading message="Loading profit/loss data..." />;
   if (!data.length) return <p className="p-6 text-center">No accounts found.</p>;
 
   return (
