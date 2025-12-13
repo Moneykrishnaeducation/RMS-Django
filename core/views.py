@@ -1129,6 +1129,9 @@ class ServerSettingsAPIView(APIView):
                 server_setting.server_name_client = data['server_name']
                 server_setting.save()
 
+            # Delete all existing accounts to prevent mixing old and new data
+            Accounts.objects.all().delete()
+
             # Force refresh MT5 Manager connection with new credentials
             try:
                 from adminPanel.mt5.services import reset_manager_instance
@@ -1154,6 +1157,7 @@ class ServerSettingsAPIView(APIView):
         """
         POST method for server settings - same functionality as PUT for compatibility
         """
+        logger = logging.getLogger(__name__)
         try:
             data = request.data
             required_fields = ['server_ip', 'login_id', 'server_password', 'server_name']
@@ -1165,21 +1169,15 @@ class ServerSettingsAPIView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            server_setting, created = ServerSetting.objects.get_or_create(
-                defaults={
-                    'server_ip': data['server_ip'],
-                    'real_account_login': data['login_id'],
-                    'real_account_password': data['server_password'],
-                    'server_name_client': data['server_name']
-                }
-            )
+            # Delete all existing server settings to ensure only one exists
+            ServerSetting.objects.all().delete()
 
-            if not created:
-                server_setting.server_ip = data['server_ip']
-                server_setting.real_account_login = data['login_id']
-                server_setting.real_account_password = data['server_password']
-                server_setting.server_name_client = data['server_name']
-                server_setting.save()
+            server_setting = ServerSetting.objects.create(
+                server_ip=data['server_ip'],
+                real_account_login=data['login_id'],
+                real_account_password=data['server_password'],
+                server_name_client=data['server_name']
+            )
 
             # Automated full MT5 database and cache reset after updating credentials
             try:
@@ -1191,6 +1189,8 @@ class ServerSettingsAPIView(APIView):
                 # Delete all cached trading groups
                 with transaction.atomic():
                     MT5GroupConfig.objects.all().delete()
+                # Delete all existing accounts to prevent mixing old and new data
+                Accounts.objects.all().delete()
                 # Clear all Django cache
                 cache.clear()
                 # Clear MT5-specific cache keys
@@ -1218,6 +1218,13 @@ def get_server_by_id(request, server_id):
         print(f"get_server_by_id called with server_id: {server_id}")
         print("Server change initiated - retrieving server settings...")
         server = ServerSetting.objects.get(id=server_id)
+
+        # Make this server the latest by updating its created_at timestamp
+        from django.utils import timezone
+        server.created_at = timezone.now()
+        server.save()
+        print(f"Updated server {server_id} as the latest server")
+
         data = {
             "id": server.id,
             "host": server.server_ip.split(":")[0] if ":" in server.server_ip else server.server_ip,

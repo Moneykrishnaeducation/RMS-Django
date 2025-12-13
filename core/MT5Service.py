@@ -64,12 +64,26 @@ class MT5Service:
     _shared_manager = None
     _shared_lock = threading.Lock()
 
+    @classmethod
+    def reset_shared_manager(cls):
+        """Reset the shared manager to force a new connection."""
+        with cls._shared_lock:
+            if cls._shared_manager:
+                try:
+                    cls._shared_manager.connected = False
+                except Exception:
+                    pass
+            cls._shared_manager = None
+
     def __init__(self, host=None, port=None, login=None, password=None,
              server_id=None, pump_mode=1, timeout=120000):
 
         env = _read_env()
 
-        
+        # Reset shared manager when switching servers to force new connection
+        if server_id:
+            MT5Service.reset_shared_manager()
+
         if server_id:
             try:
                 from core.models import ServerSetting
@@ -237,14 +251,6 @@ class MT5Service:
                     groups.append(name)
             except Exception:
                 continue
-
-        # Insert groups into PostgreSQL database using Django ORM
-        try:
-            for group_name in groups:
-                Groups.objects.get_or_create(Groups=group_name)
-        except Exception as e:
-            # Log error but don't fail the method
-            print(f"Error inserting groups into database: {e}")
 
         return groups
 
@@ -624,6 +630,12 @@ class MT5Service:
                     defaults={'is_enabled': True, 'last_sync': timezone.now()}
                 )
 
+            # Update Groups table to reflect enabled groups from MT5GroupConfig
+            enabled_groups = MT5GroupConfig.objects.filter(is_enabled=True).values_list('group_name', flat=True)
+            Groups.objects.all().delete()  # Clear existing groups
+            for group_name in enabled_groups:
+                Groups.objects.get_or_create(Groups=group_name)
+
             logger.info(f"Synced {len(groups)} trading groups from MT5")
             return True
         except Exception as e:
@@ -766,11 +778,18 @@ def reset_mt5_instance(server_id=None):
         print("Could not acquire _mt5_lock, another operation in progress")
         return None
 
-def force_refresh_trading_groups():
+def force_refresh_trading_groups(server_id=None):
     """
-    Force refresh trading groups from the currently connected MT5Service instance.
+    Force refresh trading groups from the MT5Service instance for the specified server_id (login).
+    If server_id is None, uses the currently connected instance.
     """
     global _mt5_instance
+
+    # If server_id is provided, reset to that server first
+    if server_id:
+        logger.info(f"Switching to server ID {server_id} for group sync")
+        reset_mt5_instance(server_id=server_id)
+
     if not _mt5_instance or not getattr(_mt5_instance, 'manager', None):
         logger.error("MT5Service is not connected. Cannot refresh trading groups.")
         return False
@@ -782,7 +801,7 @@ def force_refresh_trading_groups():
         # Sync trading groups from MT5
         result = _mt5_instance.sync_groups()  # Assumes your MT5Service has a method `sync_groups()`
         if result:
-            logger.info("Trading groups refreshed from MT5")
+            logger.info(f"Trading groups refreshed from MT5 for server {server_id or 'current'}")
             return True
         else:
             logger.warning("Failed to sync trading groups from MT5 - this may be due to network connectivity issues")
@@ -802,9 +821,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='MT5Service quick test')
     parser.add_argument('--action', choices=['groups', 'list', 'detail', 'positions'], default='groups')
     parser.add_argument('--login', help='login id for detail/positions')
+    parser.add_argument('--server_id', help='server ID to use for connection')
     args = parser.parse_args()
 
-    svc = MT5Service()
+    svc = MT5Service(server_id=args.server_id) if args.server_id else MT5Service()
     if args.action == 'groups':
         print(json.dumps(svc.get_group_list(), indent=2, default=str))
     elif args.action == 'list':
