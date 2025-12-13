@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import Loading from "../CommonComponent/Loading";
 
 const SymbolPositions = () => {
   const [positions, setPositions] = useState([]);

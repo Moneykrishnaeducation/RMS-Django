@@ -34,7 +34,7 @@ const Servers = () => {
     alert(`Login to server: ${server.server_name_client} (${server.server_ip})`);
   };
 
-  if (loading) return <div className="p-10 text-lg font-semibold">Loading servers...</div>;
+  if (loading) return <Loading message="Loading servers..." />;
   if (error) return <div className="p-10 text-lg font-semibold text-red-600">Error: {error}</div>;
 
   return (

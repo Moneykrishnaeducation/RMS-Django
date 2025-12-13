@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
+import Loading from "../CommonComponent/Loading";
 
 const API_BASE = "/api/accounts/db/";
 

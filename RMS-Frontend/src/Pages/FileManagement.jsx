@@ -199,7 +199,7 @@ const FileManagement = () => {
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Servers</h2>
 
         {serversLoading ? (
-          <div className="text-lg font-semibold">Loading servers...</div>
+          <Loading message="Loading servers..." />
         ) : serversError ? (
           <div className="text-lg font-semibold text-red-600">Error: {serversError}</div>
         ) : (

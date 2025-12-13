@@ -9,17 +9,13 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import Loading from "../CommonComponent/Loading";
 
 const API_URL = "/api/lots/all/";
 
 const Trend = () => {
   const [chartData, setChartData] = useState([]);
-  const [symbols, setSymbols] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchChartData();
-  }, []);
 
   const fetchChartData = async () => {
     try {
@@ -28,7 +24,6 @@ const Trend = () => {
 
       // Extract symbols
       const uniqueSymbols = [...new Set(raw.map(i => i.symbol))];
-      setSymbols(uniqueSymbols);
 
       // Extract login IDs
       const loginIds = [...new Set(raw.map(i => i.login_id))];
@@ -59,12 +54,11 @@ const Trend = () => {
     }
   };
 
-  if (loading)
-    return (
-      <p className="text-gray-500 animate-pulse p-6 text-center">
-        Loading charts...
-      </p>
-    );
+  useEffect(() => {
+    fetchChartData();
+  }, []);
+
+  if (loading) return <Loading message="Loading charts..." />;
 
   return (
     <div className="p-2 md:p-6 space-y-6 md:space-y-8">

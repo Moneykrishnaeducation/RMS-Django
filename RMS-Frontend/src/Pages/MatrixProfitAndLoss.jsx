@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
+import Loading from "../CommonComponent/Loading";
 
 const OPEN_API = "/api/positions/open/";
 const CLOSED_API = "/api/positions/closed/";
@@ -132,12 +133,7 @@ const MatrixProfit = () => {
       </div>
 
       {loading ? (
-        <div className="p-2 bg-gray-100 h-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 text-lg">Loading filter search data...</p>
-        </div>
-      </div>
+        <Loading message="Loading filter search data..." />
       ) : (
         <div className="rounded-xl border border-gray-200 shadow-xl overflow-hidden bg-white">
 

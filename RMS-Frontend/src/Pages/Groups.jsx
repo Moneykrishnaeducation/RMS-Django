@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import Loading from "../CommonComponent/Loading";
 
 const API_BASE = "/api/accounts/db/"; // make sure this returns your accounts data
 
@@ -65,7 +66,7 @@ const Groups = () => {
     ? data.filter((d) => groups.includes(d.group) && d.group === selectedGroup)
     : [];
 
-  if (loading) return <p className="p-6">Loading...</p>;
+  if (loading) return <Loading message="Loading groups data..." />;
   if (!data.length) return <p className="p-6">No data available.</p>;
 
   return (

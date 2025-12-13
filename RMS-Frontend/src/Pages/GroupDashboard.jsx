@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
+import Loading from "../CommonComponent/Loading";
 
 const GROUP_SUMMARY_API = "/api/group-summary/";
 
@@ -51,7 +52,7 @@ const GroupDashboard = () => {
     [groups, groupSummary]
   );
 
-  if (loading) return <p className="p-6 text-center">Loading...</p>;
+  if (loading) return <Loading message="Loading group dashboard data..." />;
 
   return (
     <div className="p-2 bg-gray-100 min-h-screen">

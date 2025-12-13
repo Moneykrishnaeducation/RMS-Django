@@ -1,9 +1,10 @@
 // Accounts.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
+import Loading from "../CommonComponent/Loading";
 
 const API_BASE = "/api";
-
+ 
 // Reusable Table Component (modern UI)
 const Table = ({ columns, data }) => {
   return (
@@ -146,7 +147,7 @@ const Accounts = () => {
     [data]
   );
 
-  if (loading) return <div className="p-10 text-lg font-semibold">Loading...</div>;
+  if (loading) return <Loading message="Loading accounts data..." />;
 
   return (
     <div className="p-2 space-y-12 bg-gray-50 min-h-screen">
