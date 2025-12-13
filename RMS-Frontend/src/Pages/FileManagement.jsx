@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from "react";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 const FileManagement = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     server_ip: "",
@@ -100,6 +105,15 @@ const FileManagement = () => {
     });
   };
 
+  const handleLoginSubmit = () => {
+    if (password === "Vtindex@123") {
+      setIsLoggedIn(true);
+      setLoginError("");
+    } else {
+      setLoginError("Incorrect password. Please try again.");
+    }
+  };
+
   const handleLogin = async (server) => {
     try {
       const response = await fetch(`/api/get-server/${server.id}/`, {
@@ -117,6 +131,57 @@ const FileManagement = () => {
       setMessage("Network error. Please try again.");
     }
   };
+
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-white px-10 py-10">
+        {/* SECTION TITLE */}
+        <h1 className="text-4xl font-bold text-gray-900 mb-10">
+          File Management
+        </h1>
+
+        {/* LABEL */}
+        <label className="block text-gray-700 font-medium mb-2">Password</label>
+
+        {/* INPUT FIELD WITH TOGGLE */}
+        <div className="relative w-full max-w-lg mb-4">
+          <input
+            type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Enter password"
+            className="w-[100%] py-3 px-4 bg-gray-100 border border-gray-200 rounded-lg
+                       focus:ring-2 focus:ring-blue-400 outline-none"
+          />
+
+          {/* SHOW/HIDE BUTTON */}
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-3 text-gray-600"
+          >
+            {showPassword ? <FaEyeSlash /> : <FaEye />}
+          </button>
+        </div>
+
+        {/* ERROR MESSAGE */}
+        {loginError && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-lg text-red-900 w-full max-w-lg">
+            {loginError}
+          </div>
+        )}
+
+        {/* SUBMIT BUTTON */}
+        <button
+          onClick={handleLoginSubmit}
+          className="px-6 py-2 border border-gray-300 rounded-lg
+                     hover:bg-gray-100 transition"
+        >
+          Submit
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white px-10 py-10">
