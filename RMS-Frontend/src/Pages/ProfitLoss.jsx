@@ -14,12 +14,14 @@ const API_BASE = "/api/accounts/db/";
 
 const ProfitLoss = () => {
   const [data, setData] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
 
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 10;
 
+  // Fetch accounts data
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -34,7 +36,7 @@ const ProfitLoss = () => {
 
         setData(accounts);
       } catch (err) {
-        console.error("Fetch error:", err);
+        console.error("Fetch accounts error:", err);
         setData([]);
       } finally {
         setLoading(false);
@@ -44,19 +46,36 @@ const ProfitLoss = () => {
     fetchData();
   }, []);
 
+  // Fetch groups data
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        const res = await axios.get('/api/groups/db/');
+        setGroups(res.data.groups || []);
+      } catch (err) {
+        console.error("Fetch groups error:", err);
+      }
+    };
+
+    fetchGroups();
+  }, []);
+
   const filteredData = useMemo(() => {
     if (!Array.isArray(data)) return [];
+    // First, filter accounts to only those whose group exists in the Groups table
+    let filtered = data.filter((row) => groups.includes(row.group));
+    // Then apply demo/real filter
     if (filter === "demo") {
-      return data.filter(
+      filtered = filtered.filter(
         (row) => row.group && row.group.toLowerCase().includes("demo")
       );
     } else if (filter === "real") {
-      return data.filter(
+      filtered = filtered.filter(
         (row) => row.group && !row.group.toLowerCase().includes("demo")
       );
     }
-    return data;
-  }, [data, filter]);
+    return filtered;
+  }, [data, filter, groups]);
 
   const totalPages = Math.ceil(filteredData.length / rowsPerPage);
 

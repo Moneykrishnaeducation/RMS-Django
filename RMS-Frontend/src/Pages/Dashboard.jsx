@@ -5,35 +5,76 @@ const API_BASE = '/api'; // Django backend API base
 
 const Dashboard = () => {
   const [data, setData] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    const fetchAccounts = async () => {
-      setLoading(true);
-      try {
-        const response = await axios.get(`${API_BASE}/accounts/db`);
-        if (response.data && response.data.accounts) {
-          if (Array.isArray(response.data.accounts)) {
-            setData(response.data.accounts);
-          } else if (typeof response.data.accounts === 'object') {
-            setData(Object.values(response.data.accounts));
-          } else {
-            console.error('accounts is not array or object');
-            setData([]);
-          }
+  const fetchAccounts = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API_BASE}/accounts/db`);
+      if (response.data && response.data.accounts) {
+        if (Array.isArray(response.data.accounts)) {
+          setData(response.data.accounts);
+        } else if (typeof response.data.accounts === 'object') {
+          setData(Object.values(response.data.accounts));
         } else {
-          console.error('API returned invalid data');
+          console.error('accounts is not array or object');
           setData([]);
         }
-      } catch (error) {
-        console.error('Error fetching accounts:', error);
+      } else {
+        console.error('API returned invalid data');
         setData([]);
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching accounts:', error);
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchAccounts();
+  const fetchGroups = async () => {
+    try {
+      const response = await axios.get(`${API_BASE}/groups/db/`);
+      if (response.data && response.data.groups) {
+        if (Array.isArray(response.data.groups)) {
+          setGroups(response.data.groups);
+        } else if (typeof response.data.groups === 'object') {
+          setGroups(Object.values(response.data.groups));
+        } else {
+          console.error('groups is not array or object');
+          setGroups([]);
+        }
+      } else {
+        console.error('API returned invalid groups data');
+        setGroups([]);
+      }
+    } catch (error) {
+      console.error('Error fetching groups:', error);
+      setGroups([]);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      // First sync MT5 to DB (includes groups and accounts)
+      await axios.get(`${API_BASE}/sync/mt5/`);
+      // Then refresh groups and accounts data
+      await Promise.all([fetchGroups(), fetchAccounts()]);
+    } catch (error) {
+      console.error('Error during refresh:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      await Promise.all([fetchGroups(), fetchAccounts()]);
+    };
+    fetchData();
   }, []);
 
   const isDemo = (g) => g?.toLowerCase().startsWith("demo");
@@ -106,9 +147,27 @@ const Dashboard = () => {
 
   return (
     <div className="md:p-6 bg-gray-100 min-h-screen">
-      <h2 className="text-3xl text-center font-extrabold mb-8 text-gray-900">
-        📊 RMS — Accounts Dashboard
-      </h2>
+      <div className="flex justify-between items-center mb-8">
+        <h2 className="text-3xl font-extrabold text-gray-900">
+          📊 RMS — Accounts Dashboard
+        </h2>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg text-lg font-medium transition-colors flex items-center gap-2"
+        >
+          {refreshing ? (
+            <>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              Refreshing...
+            </>
+          ) : (
+            <>
+              🔄 Refresh Data
+            </>
+          )}
+        </button>
+      </div>
 
       {/* Stats Cards */}
       <div className=" p-6 md:p-0 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4 mb-10">

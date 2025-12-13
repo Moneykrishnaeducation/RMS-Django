@@ -40,35 +40,76 @@ const Table = ({ columns, data }) => {
 
 const Accounts = () => {
   const [data, setData] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [accountType, setAccountType] = useState("all"); // all | demo | real
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
-  useEffect(() => {
-    const fetchAccounts = async () => {
-      setLoading(true);
+  const fetchAccounts = async () => {
+    setLoading(true);
 
-      try {
-        const response = await axios.get(`${API_BASE}/accounts/db`);
+    try {
+      const response = await axios.get(`${API_BASE}/accounts/db`);
 
-        if (response.data && response.data.accounts) {
-          if (Array.isArray(response.data.accounts)) {
-            setData(response.data.accounts);
-          } else if (typeof response.data.accounts === "object") {
-            setData(Object.values(response.data.accounts));
-          }
+      if (response.data && response.data.accounts) {
+        if (Array.isArray(response.data.accounts)) {
+          setData(response.data.accounts);
+        } else if (typeof response.data.accounts === "object") {
+          setData(Object.values(response.data.accounts));
         }
-      } catch (error) {
-        console.error("Error fetching accounts:", error);
-        setData([]);
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching accounts:", error);
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchAccounts();
+  const fetchGroups = async () => {
+    try {
+      const response = await axios.get(`${API_BASE}/groups/db/`);
+      if (response.data && response.data.groups) {
+        if (Array.isArray(response.data.groups)) {
+          setGroups(response.data.groups);
+        } else if (typeof response.data.groups === 'object') {
+          setGroups(Object.values(response.data.groups));
+        } else {
+          console.error('groups is not array or object');
+          setGroups([]);
+        }
+      } else {
+        console.error('API returned invalid groups data');
+        setGroups([]);
+      }
+    } catch (error) {
+      console.error('Error fetching groups:', error);
+      setGroups([]);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      // First sync MT5 to DB (includes groups and accounts)
+      await axios.get(`${API_BASE}/sync/mt5/`);
+      // Then refresh groups and accounts data
+      await Promise.all([fetchGroups(), fetchAccounts()]);
+    } catch (error) {
+      console.error('Error during refresh:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      await Promise.all([fetchGroups(), fetchAccounts()]);
+    };
+    fetchData();
   }, []);
 
   const isDemo = (g) => g?.toLowerCase().startsWith("demo");

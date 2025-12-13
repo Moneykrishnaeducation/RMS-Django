@@ -4,6 +4,7 @@ import axios from "axios";
 const SymbolPositions = () => {
   const [positions, setPositions] = useState([]);
   const [accounts, setAccounts] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [tableData, setTableData] = useState([]);
 
   const [selectedSymbol, setSelectedSymbol] = useState("XAUUSD");
@@ -17,6 +18,20 @@ const SymbolPositions = () => {
 
   const [loading, setLoading] = useState(true);
   const [symbols, setSymbols] = useState([]);
+
+  // Fetch groups data
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        const res = await axios.get('/api/groups/db/');
+        setGroups(res.data.groups || []);
+      } catch (err) {
+        console.error("Fetch groups error:", err);
+      }
+    };
+
+    fetchGroups();
+  }, []);
 
   // Fetch data
   useEffect(() => {
@@ -45,7 +60,9 @@ const SymbolPositions = () => {
 
   // Process and merge data
   useEffect(() => {
-    if (!positions.length || !accounts.length) return;
+    if (!positions.length || !accounts.length || !groups.length) return;
+
+    const filteredAccounts = accounts.filter((a) => groups.includes(a.group));
 
     let filtered = positions.filter((p) => p.symbol === selectedSymbol);
 
@@ -68,7 +85,7 @@ const SymbolPositions = () => {
     }, {});
 
     const finalData = Object.entries(aggregated).map(([login, info]) => {
-      const account = accounts.find((a) => a.login == login) || {};
+      const account = filteredAccounts.find((a) => a.login == login) || {};
 
       return {
         Login: login,
@@ -83,7 +100,7 @@ const SymbolPositions = () => {
 
     setTableData(finalData);
     setCurrentPage(1);
-  }, [positions, accounts, filter, selectedSymbol]);
+  }, [positions, accounts, groups, filter, selectedSymbol]);
 
   // Filtering
   const filteredTable = tableData.filter((item) => {

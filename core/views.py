@@ -4,7 +4,15 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 import json
+from django.db.models import Sum, Count, DecimalField
+from django.db.models.functions import Cast
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+
 from .MT5Service import MT5Service
+from django.db.models.functions import Cast
+from django.db.models import Sum, DecimalField,Count
 import os
 from django.http import FileResponse
 from django.conf import settings
@@ -26,6 +34,9 @@ from .models import Accounts, OpenPositions
 from django.db.models import Sum
 from .models import Accounts, OpenPositions, ClosedPositions
 from .models import ServerSetting
+from django.shortcuts import get_object_or_404
+from .models import Groups
+
 
 
 from datetime import datetime, timezone
@@ -270,7 +281,7 @@ def sync_positions_for_account(account):
 @require_http_methods(["GET"])
 def get_all_lots(request):
     """
-    Fetch total lot (volume) per symbol for each account,
+    Fetch total lot (volume) and total USD (profit) per symbol for each account,
     combining OpenPositions + ClosedPositions.
     """
     try:
@@ -278,12 +289,17 @@ def get_all_lots(request):
         open_data = (
             OpenPositions.objects
             .values('login__login', 'symbol')
-            .annotate(total_open=Sum('volume'))
+            .annotate(
+                total_open_lot=Sum('volume'),
+                total_open_usd=Sum('profit')
+            )
         )
 
-        # Convert to dictionary for easy merging
         open_dict = {
-            (item['login__login'], item['symbol']): item['total_open']
+            (item['login__login'], item['symbol']): {
+                "open_lot": item['total_open_lot'] or 0,
+                "open_usd": item['total_open_usd'] or 0
+            }
             for item in open_data
         }
 
@@ -291,37 +307,248 @@ def get_all_lots(request):
         closed_data = (
             ClosedPositions.objects
             .values('login__login', 'symbol')
-            .annotate(total_closed=Sum('volume'))
+            .annotate(
+                total_closed_lot=Sum('volume'),
+                total_closed_usd=Sum('profit')
+            )
         )
 
         closed_dict = {
-            (item['login__login'], item['symbol']): item['total_closed']
+            (item['login__login'], item['symbol']): {
+                "closed_lot": item['total_closed_lot'] or 0,
+                "closed_usd": item['total_closed_usd'] or 0
+            }
             for item in closed_data
         }
 
         # ----- MERGE BOTH -----
         combined_keys = set(open_dict.keys()) | set(closed_dict.keys())
 
-        all_lots = []
-        for key in combined_keys:
-            login, symbol = key
-            total_open = open_dict.get(key, 0)
-            total_closed = closed_dict.get(key, 0)
+        all_data = []
+        for (login, symbol) in combined_keys:
+            open_vals = open_dict.get((login, symbol), {})
+            closed_vals = closed_dict.get((login, symbol), {})
 
-            all_lots.append({
+            open_lot = open_vals.get("open_lot", 0)
+            closed_lot = closed_vals.get("closed_lot", 0)
+
+            open_usd = open_vals.get("open_usd", 0)
+            closed_usd = closed_vals.get("closed_usd", 0)
+
+            all_data.append({
                 "login_id": login,
                 "symbol": symbol,
-                "open_lot": total_open,
-                "closed_lot": total_closed,
-                "net_lot": total_open + total_closed
+
+                # LOTS
+                "open_lot": float(open_lot),
+                "closed_lot": float(closed_lot),
+                "net_lot": float(open_lot + closed_lot),
+
+                # USD PROFIT
+                "open_usd": float(open_usd),
+                "closed_usd": float(closed_usd),
+                "net_usd": float(open_usd + closed_usd),
             })
 
-        return JsonResponse({"data": all_lots})
+        return JsonResponse({"data": all_data})
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)@csrf_exempt
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_group_summary(request):
+    """
+    Group-wise trading summary:
+    Accounts | Open Positions | Total / Avg Net Lot | Total / Avg USD P&L
+    """
+    try:
+        # ----- VALID GROUPS -----
+        valid_groups = set(
+            Groups.objects.values_list('Groups', flat=True)
+        )
+
+        # ----- ACCOUNTS -----
+        accounts = Accounts.objects.filter(group__in=valid_groups)
+
+        account_map = {
+            acc.login: acc.group for acc in accounts
+        }
+
+        logins = list(account_map.keys())
+
+        # ----- OPEN POSITIONS -----
+        open_positions = (
+            OpenPositions.objects
+            .filter(login__login__in=logins)
+            .values('login__login')
+            .annotate(
+                open_lot=Sum(
+                    Cast('volume', DecimalField(max_digits=20, decimal_places=8))
+                ),
+                open_usd=Sum(
+                    Cast('profit', DecimalField(max_digits=20, decimal_places=8))
+                ),
+                open_positions=Count('id')
+            )
+        )
+
+        # ----- CLOSED POSITIONS -----
+        closed_positions = (
+            ClosedPositions.objects
+            .filter(login__login__in=logins)
+            .values('login__login')
+            .annotate(
+                closed_lot=Sum(
+                    Cast('volume', DecimalField(max_digits=20, decimal_places=8))
+                ),
+                closed_usd=Sum(
+                    Cast('profit', DecimalField(max_digits=20, decimal_places=8))
+                )
+            )
+        )
+
+        # ----- AGGREGATE BY GROUP -----
+        group_data = {}
+
+        def init_group(group):
+            group_data[group] = {
+                "group": group,
+                "accounts": set(),
+                "open_positions": 0,
+                "total_net_lot": 0,
+                "total_usd": 0
+            }
+
+        for row in open_positions:
+            login = row['login__login']
+            group = account_map.get(login)
+            if not group:
+                continue
+
+            if group not in group_data:
+                init_group(group)
+
+            group_data[group]["accounts"].add(login)
+            group_data[group]["open_positions"] += row['open_positions'] or 0
+            group_data[group]["total_net_lot"] += row['open_lot'] or 0
+            group_data[group]["total_usd"] += row['open_usd'] or 0
+
+        for row in closed_positions:
+            login = row['login__login']
+            group = account_map.get(login)
+            if not group:
+                continue
+
+            if group not in group_data:
+                init_group(group)
+
+            group_data[group]["total_net_lot"] += row['closed_lot'] or 0
+            group_data[group]["total_usd"] += row['closed_usd'] or 0
+
+        # ----- FINAL RESPONSE -----
+        response = []
+        for group, data in group_data.items():
+            acc_count = len(data["accounts"]) or 1
+
+            response.append({
+                "group": group,
+                "accounts": acc_count,
+                "open_positions": data["open_positions"],
+                "total_net_lot": float(data["total_net_lot"]),
+                "total_usd_pnl": float(data["total_usd"]),
+                "avg_net_lot": float(data["total_net_lot"] / acc_count),
+                "avg_usd_pnl": float(data["total_usd"] / acc_count),
+            })
+
+        return JsonResponse({"data": response})
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
+@require_http_methods(["GET"])
+def get_all_lots(request):
+    """
+    Fetch total lot (volume) and USD profit per symbol per account,
+    combining OpenPositions + ClosedPositions.
+    """
+    try:
+        # ----- OPEN POSITIONS -----
+        open_data = (
+            OpenPositions.objects
+            .values('login__login', 'symbol')
+            .annotate(
+                total_open_lot=Sum(
+                    Cast('volume', DecimalField(max_digits=20, decimal_places=8))
+                ),
+                total_open_usd=Sum(
+                    Cast('profit', DecimalField(max_digits=20, decimal_places=8))
+                )
+            )
+        )
 
+        open_dict = {
+            (item['login__login'], item['symbol']): {
+                "open_lot": item['total_open_lot'] or 0,
+                "open_usd": item['total_open_usd'] or 0
+            }
+            for item in open_data
+        }
+
+        # ----- CLOSED POSITIONS -----
+        closed_data = (
+            ClosedPositions.objects
+            .values('login__login', 'symbol')
+            .annotate(
+                total_closed_lot=Sum(
+                    Cast('volume', DecimalField(max_digits=20, decimal_places=8))
+                ),
+                total_closed_usd=Sum(
+                    Cast('profit', DecimalField(max_digits=20, decimal_places=8))
+                )
+            )
+        )
+
+        closed_dict = {
+            (item['login__login'], item['symbol']): {
+                "closed_lot": item['total_closed_lot'] or 0,
+                "closed_usd": item['total_closed_usd'] or 0
+            }
+            for item in closed_data
+        }
+
+        # ----- MERGE BOTH -----
+        combined_keys = set(open_dict.keys()) | set(closed_dict.keys())
+
+        all_data = []
+        for (login, symbol) in combined_keys:
+            open_vals = open_dict.get((login, symbol), {})
+            closed_vals = closed_dict.get((login, symbol), {})
+
+            open_lot = open_vals.get("open_lot", 0)
+            closed_lot = closed_vals.get("closed_lot", 0)
+            open_usd = open_vals.get("open_usd", 0)
+            closed_usd = closed_vals.get("closed_usd", 0)
+
+            all_data.append({
+                "login_id": login,
+                "symbol": symbol,
+
+                # LOTS
+                "open_lot": float(open_lot),
+                "closed_lot": float(closed_lot),
+                "net_lot": float(open_lot + closed_lot),
+
+                # USD
+                "open_usd": float(open_usd),
+                "closed_usd": float(closed_usd),
+                "net_usd": float(open_usd + closed_usd),
+            })
+
+        return JsonResponse({"data": all_data})
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 @csrf_exempt  # Only use if necessary, consider removing for production
 @require_http_methods(["GET"])
 def get_all_lots_by_login(request, login_id):
@@ -360,6 +587,10 @@ def get_user_profile(request, login_id):
     try:
         # Fetch account details based on login_id
         account = get_object_or_404(Accounts, login=login_id)
+
+        # Check if the account's group exists in the Groups table
+        if not Groups.objects.filter(Groups=account.group).exists():
+            return JsonResponse({"error": "Account group not found in groups table"}, status=404)
 
         # Fetch open positions associated with this account
         open_positions = OpenPositions.objects.filter(login=account)

@@ -1,32 +1,35 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 
-const ACCOUNTS_API = "/api/accounts/db/";
-const POSITIONS_API = "/api/positions/open/";
+const GROUP_SUMMARY_API = "/api/group-summary/";
 
 const GroupDashboard = () => {
-  const [accounts, setAccounts] = useState([]);
-  const [positions, setPositions] = useState([]);
+  const [groupSummary, setGroupSummary] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Fetch groups data
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        const res = await axios.get('/api/groups/db/');
+        setGroups(res.data.groups || []);
+      } catch (err) {
+        console.error("Fetch groups error:", err);
+      }
+    };
+
+    fetchGroups();
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [accRes, posRes] = await Promise.all([
-          axios.get(ACCOUNTS_API),
-          axios.get(POSITIONS_API),
-        ]);
-
-        const accData = Array.isArray(accRes.data)
-          ? accRes.data
-          : accRes.data.accounts || accRes.data.results || [];
-        setAccounts(accData);
-
-        const posData = posRes.data.positions || [];
-        setPositions(posData);
+        const res = await axios.get(GROUP_SUMMARY_API);
+        setGroupSummary(res.data.data || []);
       } catch (err) {
-        console.error(err);
+        console.error("Fetch group summary error:", err);
       } finally {
         setLoading(false);
       }
@@ -37,65 +40,15 @@ const GroupDashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const processedAccounts = useMemo(() => {
-    return accounts.map((d) => ({
-      login: d.login || d.Login || 0,
-      group: d.group || "Unknown",
-    }));
-  }, [accounts]);
-
-  const processedPositions = useMemo(() => {
-    return positions.map((p) => ({
-      login: p.login__login,
-      symbol: p.symbol,
-      volume: Number(p.volume || 0),
-      profit: Number(p.profit || 0),
-    }));
-  }, [positions]);
-
-  const groupSummary = useMemo(() => {
-    const map = {};
-
-    processedAccounts.forEach((d) => {
-      if (!map[d.group])
-        map[d.group] = {
-          group: d.group,
-          accounts: 0,
-          open_positions: 0,
-          total_volume: 0,
-          total_usd_pl: 0,
-        };
-      map[d.group].accounts += 1;
-    });
-
-    processedPositions.forEach((pos) => {
-      const acc = processedAccounts.find((a) => a.login === pos.login);
-      const g = acc?.group || "Unknown";
-      if (!map[g])
-        map[g] = {
-          group: g,
-          accounts: 0,
-          open_positions: 0,
-          total_volume: 0,
-          total_usd_pl: 0,
-        };
-      map[g].open_positions += 1;
-      map[g].total_volume += pos.volume;
-      map[g].total_usd_pl += pos.profit;
-    });
-
-    return Object.values(map);
-  }, [processedAccounts, processedPositions]);
-
   const totals = useMemo(
     () => ({
-      totalGroups: groupSummary.length,
+      totalGroups: groups.length,
       totalAccounts: groupSummary.reduce((a, b) => a + b.accounts, 0),
       totalPositions: groupSummary.reduce((a, b) => a + b.open_positions, 0),
-      totalVolume: groupSummary.reduce((a, b) => a + b.total_volume, 0),
-      totalUSDPL: groupSummary.reduce((a, b) => a + b.total_usd_pl, 0),
+      totalVolume: groupSummary.reduce((a, b) => a + b.total_net_lot, 0),
+      totalUSDPL: groupSummary.reduce((a, b) => a + b.total_usd_pnl, 0),
     }),
-    [groupSummary]
+    [groups, groupSummary]
   );
 
   if (loading) return <p className="p-6 text-center">Loading...</p>;
@@ -153,28 +106,38 @@ const GroupDashboard = () => {
             </tr>
           </thead>
           <tbody>
-            {groupSummary.map((g) => (
-              <tr
-                key={g.group}
-                className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
-              >
-                <td className="p-2 md:p-3 font-medium">{g.group}</td>
-                <td className="p-2 md:p-3 text-center">{g.accounts}</td>
-                <td className="p-2 md:p-3 text-center">{g.open_positions}</td>
-                <td className="p-2 md:p-3 text-center">
-                  {g.total_volume.toFixed(2)}
-                </td>
-                <td className="p-2 md:p-3 text-center">
-                  ${g.total_usd_pl.toFixed(2)}
-                </td>
-                <td className="p-2 md:p-3 text-center">
-                  {g.accounts ? (g.total_volume / g.accounts).toFixed(2) : 0}
-                </td>
-                <td className="p-2 md:p-3 text-center">
-                  {g.accounts ? (g.total_usd_pl / g.accounts).toFixed(2) : 0}
-                </td>
-              </tr>
-            ))}
+            {groups.map((group) => {
+              const summary = groupSummary.find((s) => s.group === group) || {
+                accounts: 0,
+                open_positions: 0,
+                total_net_lot: 0,
+                total_usd_pnl: 0,
+                avg_net_lot: 0,
+                avg_usd_pnl: 0,
+              };
+              return (
+                <tr
+                  key={group}
+                  className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
+                >
+                  <td className="p-2 md:p-3 font-medium">{group}</td>
+                  <td className="p-2 md:p-3 text-center">{summary.accounts}</td>
+                  <td className="p-2 md:p-3 text-center">{summary.open_positions}</td>
+                  <td className="p-2 md:p-3 text-center">
+                    {summary.total_net_lot.toFixed(2)}
+                  </td>
+                  <td className="p-2 md:p-3 text-center">
+                    ${summary.total_usd_pnl.toFixed(2)}
+                  </td>
+                  <td className="p-2 md:p-3 text-center">
+                    {summary.avg_net_lot.toFixed(2)}
+                  </td>
+                  <td className="p-2 md:p-3 text-center">
+                    ${summary.avg_usd_pnl.toFixed(2)}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

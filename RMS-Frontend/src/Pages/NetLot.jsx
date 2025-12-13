@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 
-const volume_API = "/api/positions/open/";
+const volume_API = "/api/lots/all/";
 
 const NetLot = () => {
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -22,21 +24,40 @@ const NetLot = () => {
         map[sym] = {
           symbol: sym,
           volume: item.volume || 0,
-          profit: item.profit || 0,
+          usd_pl: item.usd_pl || 0,
         };
       } else {
         map[sym].volume += item.volume || 0;
-        map[sym].profit += item.profit || 0;
+        map[sym].usd_pl += item.usd_pl || 0;
       }
     });
 
     return Object.values(map);
   };
 
+  // Fetch groups and accounts
+  useEffect(() => {
+    const fetchGroupsAndAccounts = async () => {
+      try {
+        const groupsRes = await axios.get('/api/groups/db/');
+        const accountsRes = await axios.get('/api/accounts/db/');
+
+        setGroups(groupsRes.data.groups || []);
+        setAccounts(accountsRes.data.accounts || []);
+      } catch (err) {
+        console.error("Fetch groups/accounts error:", err);
+      }
+    };
+
+    fetchGroupsAndAccounts();
+  }, []);
+
   // ===========================
   // FETCH + NORMALIZE DATA
   // ===========================
   useEffect(() => {
+    if (!groups.length || !accounts.length) return;
+
     const fetchData = async () => {
       setLoading(true);
       try {
@@ -53,26 +74,20 @@ const NetLot = () => {
             ? res.data.positions
             : [];
 
-        const df = rows.map((item) => ({
-          symbol:
-            item.symbol ||
-            item.Symbol ||
-            item.SYMBOL ||
-            item.symbol_name ||
-            item?.position?.symbol ||
-            "",
-          volume:
-            Number(item.volume) ||
-            Number(item.Volume) ||
-            Number(item.lots) ||
-            Number(item?.position?.volume) ||
-            0,
-          profit:
-            Number(item.profit) ||
-            Number(item.Profit) ||
-            Number(item.pnl) ||
-            Number(item?.position?.profit) ||
-            0,
+        // Filter accounts whose group exists in groups
+        const filteredAccounts = accounts.filter((a) => groups.includes(a.group));
+        const filteredLogins = filteredAccounts.map((a) => a.login.toString());
+
+        // Filter positions where login_id is in filtered accounts
+        const filteredRows = rows.filter((item) => {
+          const login = item.login_id?.toString();
+          return login && filteredLogins.includes(login);
+        });
+
+        const df = filteredRows.map((item) => ({
+          symbol: item.symbol || "",
+          volume: Number(item.net_lot) || 0,
+          usd_pl: Number(item.net_usd) || 0,
         }));
 
         const grouped = groupBySymbol(df);
@@ -91,7 +106,7 @@ const NetLot = () => {
     fetchData();
     const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
-  }, []);
+  }, [groups, accounts]);
 
   // ===========================
   // SEARCH FILTER
@@ -116,12 +131,11 @@ const NetLot = () => {
   // ===========================
   const totals = useMemo(() => {
     if (!filteredData.length)
-      return { totalSymbols: 0, totalNetLot: 0, totalUSDPL: 0 };
+      return { totalSymbols: 0, totalNetLot: 0 };
 
     return {
       totalSymbols: filteredData.length,
       totalNetLot: filteredData.reduce((sum, d) => sum + Number(d.volume), 0),
-      totalUSDPL: filteredData.reduce((sum, d) => sum + Number(d.profit), 0),
     };
   }, [filteredData]);
 
@@ -156,7 +170,7 @@ const NetLot = () => {
       </h1>
 
       {/* Totals */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <div className="bg-white shadow-lg p-5 text-center rounded-lg">
           <p className="text-gray-500">Total Symbols</p>
           <p className="text-2xl font-bold">{totals.totalSymbols}</p>
@@ -165,14 +179,7 @@ const NetLot = () => {
         <div className="bg-white shadow-lg p-5 text-center rounded-lg">
           <p className="text-gray-500">Total Net Lot</p>
           <p className="text-2xl font-bold text-blue-600">
-            {totals.totalNetLot.toFixed(2)}
-          </p>
-        </div>
-
-        <div className="bg-white shadow-lg p-5 text-center rounded-lg">
-          <p className="text-gray-500">Total USD P&L</p>
-          <p className="text-2xl font-bold text-green-600">
-            ${totals.totalUSDPL.toFixed(2)}
+            {(totals.totalNetLot || 0).toFixed(2)}
           </p>
         </div>
       </div>
@@ -203,7 +210,7 @@ const NetLot = () => {
             <tr className="bg-indigo-700 text-white uppercase text-sm">
               <th className="p-2 md:p-3 text-left">Symbol</th>
               <th className="p-2 md:p-3 text-center">Net Lot</th>
-              <th className="p-2 md:p-3 text-center">USD P&L</th>
+              <th className="p-2 md:p-3 text-center">USD P/L</th>
             </tr>
           </thead>
 
@@ -216,7 +223,7 @@ const NetLot = () => {
                 >
                   <td className="p-2 md:p-3">{d.symbol}</td>
                   <td className="p-2 md:p-3 text-center">{d.volume.toFixed(2)}</td>
-                  <td className="p-2 md:p-3 text-center">{d.profit.toFixed(2)}</td>
+                  <td className="p-2 md:p-3 text-center">{d.usd_pl.toFixed(2)}</td>
                 </tr>
               ))
             ) : (

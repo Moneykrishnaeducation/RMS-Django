@@ -19,6 +19,7 @@ urlpatterns = [
     path('add-server/', views.add_server_setting, name='add_server_setting'),
     path('get-servers/', views.get_server_settings, name='get_server_settings'),
     path("get-server/<int:server_id>/", views.get_server_by_id),
+    path("group-summary/", views.get_group_summary, name="group-summary"),
     
     
     # Server settings endpoints

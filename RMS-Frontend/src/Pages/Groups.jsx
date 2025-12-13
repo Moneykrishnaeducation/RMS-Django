@@ -5,8 +5,30 @@ const API_BASE = "/api/accounts/db/"; // make sure this returns your accounts da
 
 const Groups = () => {
   const [data, setData] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState("");
   const [loading, setLoading] = useState(true);
+
+  // Fetch groups data
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        const res = await axios.get('/api/groups/db/');
+        setGroups(res.data.groups || []);
+      } catch (err) {
+        console.error("Fetch groups error:", err);
+      }
+    };
+
+    fetchGroups();
+  }, []);
+
+  // Set default selectedGroup from groups
+  useEffect(() => {
+    if (groups.length && !selectedGroup) {
+      setSelectedGroup(groups[0]);
+    }
+  }, [groups, selectedGroup]);
 
   // Fetch data every 15 seconds
   useEffect(() => {
@@ -22,10 +44,6 @@ const Groups = () => {
           accounts = res.data.results;
         }
         setData(accounts);
-
-        if (accounts.length && !selectedGroup) {
-          setSelectedGroup(accounts[0].group || "");
-        }
       } catch (err) {
         console.error("Fetch error:", err);
         setData([]);
@@ -37,16 +55,14 @@ const Groups = () => {
     fetchData();
     const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
-  }, [selectedGroup]);
+  }, []);
 
   // Unique groups for dropdown
-  const groupsList = Array.from(
-    new Set(data.map((d) => d.group).filter(Boolean))
-  ).sort();
+  const groupsList = groups.sort();
 
   // Filter by group
   const filteredData = selectedGroup
-    ? data.filter((d) => d.group === selectedGroup)
+    ? data.filter((d) => groups.includes(d.group) && d.group === selectedGroup)
     : [];
 
   if (loading) return <p className="p-6">Loading...</p>;

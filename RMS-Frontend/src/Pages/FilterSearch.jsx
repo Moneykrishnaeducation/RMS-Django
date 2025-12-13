@@ -5,39 +5,80 @@ const API_BASE = '/api'; // Django backend API base
 
 const FilterSearch = () => {
   const [data, setData] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [accountType, setAccountType] = useState("Real Account");
-  const [loginFilter, setLoginFilter] = useState("All");
-  const [nameFilter, setNameFilter] = useState("All");
-  const [groupFilter, setGroupFilter] = useState("All");
+  const [loginFilter, setLoginFilter] = useState("");
+  const [nameFilter, setNameFilter] = useState("");
+  const [groupFilter, setGroupFilter] = useState("");
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 10;
 
-  useEffect(() => {
-    const fetchAccounts = async () => {
-      setLoading(true);
-      try {
-        const response = await axios.get(`${API_BASE}/accounts/db`);
-        if (response.data && response.data.accounts) {
-          if (Array.isArray(response.data.accounts)) {
-            setData(response.data.accounts);
-          } else {
-            setData(Object.values(response.data.accounts));
-          }
+  const fetchAccounts = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API_BASE}/accounts/db`);
+      if (response.data && response.data.accounts) {
+        if (Array.isArray(response.data.accounts)) {
+          setData(response.data.accounts);
         } else {
-          setData([]);
+          setData(Object.values(response.data.accounts));
         }
-      } catch (error) {
-        console.error('Error fetching accounts:', error);
+      } else {
         setData([]);
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching accounts:', error);
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchAccounts();
+  const fetchGroups = async () => {
+    try {
+      const response = await axios.get(`${API_BASE}/groups/db/`);
+      if (response.data && response.data.groups) {
+        if (Array.isArray(response.data.groups)) {
+          setGroups(response.data.groups);
+        } else if (typeof response.data.groups === 'object') {
+          setGroups(Object.values(response.data.groups));
+        } else {
+          console.error('groups is not array or object');
+          setGroups([]);
+        }
+      } else {
+        console.error('API returned invalid groups data');
+        setGroups([]);
+      }
+    } catch (error) {
+      console.error('Error fetching groups:', error);
+      setGroups([]);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      // First sync MT5 to DB (includes groups and accounts)
+      await axios.get(`${API_BASE}/sync/mt5/`);
+      // Then refresh groups and accounts data
+      await Promise.all([fetchGroups(), fetchAccounts()]);
+    } catch (error) {
+      console.error('Error during refresh:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      await Promise.all([fetchGroups(), fetchAccounts()]);
+    };
+    fetchData();
   }, []);
 
   const isDemo = useCallback((group) => group?.toLowerCase().startsWith("demo"), []);
@@ -48,20 +89,27 @@ const FilterSearch = () => {
 
   const filteredRows = useMemo(() => {
     let rows = data.filter(row =>
-      accountType === "Real Acc ount" ? isReal(row.group) : isDemo(row.group)
+      accountType === "Real Account" ? isReal(row.group) : isDemo(row.group)
     );
 
-    if (loginFilter !== "All")
-      rows = rows.filter(r => r.login === Number(loginFilter));
+    if (loginFilter.trim() !== "")
+      rows = rows.filter(r => String(r.login).toLowerCase().includes(loginFilter.toLowerCase()));
 
-    if (nameFilter !== "All")
-      rows = rows.filter(r => r.name === nameFilter);
+    if (nameFilter.trim() !== "")
+      rows = rows.filter(r => r.name.toLowerCase().includes(nameFilter.toLowerCase()));
 
-    if (groupFilter !== "All")
-      rows = rows.filter(r => r.group === groupFilter);
+    if (groupFilter.trim() !== "")
+      rows = rows.filter(r => r.group.toLowerCase().includes(groupFilter.toLowerCase()));
 
     return rows;
   }, [data, accountType, loginFilter, nameFilter, groupFilter, isReal]);
+
+  // Debug logging
+  console.log('Account Type:', accountType);
+  console.log('Total Real:', totalReal, 'Total Demo:', totalDemo);
+  console.log('Sample groups:', data.slice(0, 5).map(row => row.group));
+  console.log('Filtered rows count:', filteredRows.length);
+  console.log('First 3 filtered groups:', filteredRows.slice(0, 3).map(row => row.group));
 
   // Reset to page 1 whenever filters change
   useEffect(() => setCurrentPage(1), [accountType, loginFilter, nameFilter, groupFilter]);
@@ -105,9 +153,11 @@ const FilterSearch = () => {
 
   return (
     <div className="p-2 md:p-6 bg-gray-100 min-h-screen">
-      <h2 className="text-3xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-        🔍 Advanced Filter Search
-      </h2>
+      <div className="mb-4">
+        <h2 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+          🔍 Advanced Filter Search
+        </h2>
+      </div>
 
       <div className="mb-4 text-lg font-semibold text-gray-700">
         <span className="mr-6">Total Real: {totalReal}</span>
@@ -118,73 +168,67 @@ const FilterSearch = () => {
       <div className="mb-6">
         <label className="font-semibold text-gray-800 block mb-2">Select Account Type</label>
         <div className="flex gap-6">
-          {["Real Account", "Demo Account"].map((type) => (
-            <label key={type} className="flex items-center gap-2 cursor-pointer text-gray-700">
-              <input
-                type="radio"
-                className="accent-indigo-600"
-                checked={accountType === type}
-                onChange={() => setAccountType(type)}
-              />
-              {type}
-            </label>
-          ))}
+          <label className="flex items-center">
+            <input
+              type="radio"
+              name="accountType"
+              value="Real Account"
+              checked={accountType === "Real Account"}
+              onChange={(e) => setAccountType(e.target.value)}
+              className="mr-2"
+            />
+            Real Account
+          </label>
+          <label className="flex items-center">
+            <input
+              type="radio"
+              name="accountType"
+              value="Demo Account"
+              checked={accountType === "Demo Account"}
+              onChange={(e) => setAccountType(e.target.value)}
+              className="mr-2"
+            />
+            Demo Account
+          </label>
         </div>
       </div>
 
       {/* Filters */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {/* Login Filter */}
-       <div className="flex flex-col w-full max-w-full">
-  <label className="mb-1 font-medium text-gray-700">Filter by Login</label>
-  <select
-    className="w-80 p-2 border rounded-lg bg-white truncate" // fixed width here
-    value={loginFilter}
-    onChange={(e) => setLoginFilter(e.target.value)}
-  >
-    <option value="All">All</option>
-    {Array.from(new Set(data.map(i => i.login))).map((login, idx) => (
-      <option key={idx} value={login} title={login}>
-        {String(login).length > 15 ? String(login).substring(0, 15) + "..." : login}
-      </option>
-    ))}
-  </select>
-</div>
-
+        <div className="flex flex-col w-full max-w-full">
+          <label className="mb-1 font-medium text-gray-700">Filter by Login</label>
+          <input
+            type="text"
+            className="w-80 p-2 border rounded-lg bg-white"
+            placeholder="Search by login..."
+            value={loginFilter}
+            onChange={(e) => setLoginFilter(e.target.value)}
+          />
+        </div>
 
         {/* Name Filter */}
         <div className="flex flex-col w-full max-w-full">
-  <label className="mb-1 font-medium text-gray-700">Filter by Name</label>
-  <select
-    className="w-80 p-2 border rounded-lg bg-white truncate" // fixed width
-    value={nameFilter}
-    onChange={(e) => setNameFilter(e.target.value)}
-  >
-    <option value="All">All</option>
-    {Array.from(new Set(data.map(i => i.name))).map((name, idx) => (
-      <option key={idx} value={name} title={name}>
-        {name.length > 15 ? name.substring(0, 15) + "..." : name}
-      </option>
-    ))}
-  </select>
-</div>
-
+          <label className="mb-1 font-medium text-gray-700">Filter by Name</label>
+          <input
+            type="text"
+            className="w-80 p-2 border rounded-lg bg-white"
+            placeholder="Search by name..."
+            value={nameFilter}
+            onChange={(e) => setNameFilter(e.target.value)}
+          />
+        </div>
 
         {/* Group Filter */}
         <div className="flex flex-col w-full max-w-full">
-  <label className="mb-1 font-medium text-gray-700">Filter by Group</label>
-           <select
-    className="w-80 p-2 border rounded-lg bg-white truncate" // fixed width
-    value={groupFilter}
-    onChange={(e) => setGroupFilter(e.target.value)}
-  >
-       <option value="All">All</option>
-    {Array.from(new Set(data.map(i => i.group))).map((grp, idx) => (     
-      <option key={idx} value={grp} title={grp}>
-        {grp.length > 15 ? grp.substring(0, 15) + "..." : grp}
-      </option>
-    ))}
-          </select>
+          <label className="mb-1 font-medium text-gray-700">Filter by Group</label>
+          <input
+            type="text"
+            className="w-80 p-2 border rounded-lg bg-white"
+            placeholder="Search by group..."
+            value={groupFilter}
+            onChange={(e) => setGroupFilter(e.target.value)}
+          />
         </div>
       </div>
 

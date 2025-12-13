@@ -14,8 +14,9 @@ const API_BASE = "/api/accounts/db";
 
 const Reports = () => {
   const [data, setData] = useState([]);
+  const [groups, setGroups] = useState([]);
 
-  // Fetch data
+  // Fetch accounts data
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -29,25 +30,45 @@ const Reports = () => {
 
         setData(rows);
       } catch (err) {
-        console.error("Fetch error:", err);
+        console.error("Fetch accounts error:", err);
       }
     };
 
     fetchData();
   }, []);
 
+  // Fetch groups data
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        const res = await axios.get('/api/groups/db/');
+        setGroups(res.data.groups || []);
+      } catch (err) {
+        console.error("Fetch groups error:", err);
+      }
+    };
+
+    fetchGroups();
+  }, []);
+
   // Grouped summary
   const groupTable = useMemo(() => {
     const map = {};
+    // Initialize with all groups from the Groups table
+    groups.forEach(g => {
+      map[g] = { group: g, count: 0, balance_sum: 0, equity_sum: 0 };
+    });
+    // Add account data for each group
     data.forEach((row) => {
-      const g = row.group || "Unknown";
-      if (!map[g]) map[g] = { group: g, count: 0, balance_sum: 0, equity_sum: 0 };
-      map[g].count++;
-      map[g].balance_sum += Number(row.balance || 0);
-      map[g].equity_sum += Number(row.equity || 0);
+      const g = row.group;
+      if (map[g]) {
+        map[g].count++;
+        map[g].balance_sum += Number(row.balance || 0);
+        map[g].equity_sum += Number(row.equity || 0);
+      }
     });
     return Object.values(map).sort((a, b) => b.count - a.count);
-  }, [data]);
+  }, [data, groups]);
 
   // CSV Export
   const downloadCSV = () => {
