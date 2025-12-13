@@ -947,13 +947,13 @@ def sync_closed_positions_for_all_accounts():
 
         for account in accounts:
             login_id = account.login
-            print(f"Processing account {login_id}")
+            
 
             closed_positions = svc.get_closed_trades(login_id, from_date=from_date, to_date=to_date)
-            print(f"Fetched {len(closed_positions)} closed positions for {login_id}")
+            
 
             stored_closed_positions = store_closed_positions(account, closed_positions)
-            print(f"Stored {stored_closed_positions} closed positions for {login_id}")
+            
 
             total_stored += stored_closed_positions
 
@@ -1215,6 +1215,8 @@ class ServerSettingsAPIView(APIView):
 
 def get_server_by_id(request, server_id):
     try:
+        print(f"get_server_by_id called with server_id: {server_id}")
+        print("Server change initiated - retrieving server settings...")
         server = ServerSetting.objects.get(id=server_id)
         data = {
             "id": server.id,
@@ -1223,6 +1225,27 @@ def get_server_by_id(request, server_id):
             "login": server.real_account_login,
             "password": server.real_account_password
         }
+        print(f"Retrieved server data: {data}")
+
+        # Reset MT5 instance with new server settings
+        print("About to call reset_mt5_instance")
+        from .MT5Service import reset_mt5_instance, force_refresh_trading_groups
+        mt5_instance = reset_mt5_instance(server_id=server_id)
+        print("reset_mt5_instance called")
+
+        if mt5_instance is None:
+            print("Failed to reset MT5 instance")
+            return JsonResponse({"success": False, "error": "Failed to connect to MT5 server"}, status=500)
+
+        print("About to call force_refresh_trading_groups")
+        force_refresh_trading_groups()
+        print("force_refresh_trading_groups called")
+
+        print(f"Server change completed successfully for server_id: {server_id}")
         return JsonResponse({"success": True, "data": data})
     except ServerSetting.DoesNotExist:
+        print(f"Server not found for id: {server_id}")
         return JsonResponse({"success": False, "error": "Server not found"}, status=404)
+    except Exception as e:
+        print(f"Exception in get_server_by_id: {str(e)}")
+        return JsonResponse({"success": False, "error": str(e)}, status=500)

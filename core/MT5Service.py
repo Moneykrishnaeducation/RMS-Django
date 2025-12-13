@@ -7,6 +7,7 @@ import threading
 from datetime import datetime
 import django
 from django.conf import settings
+from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
 
@@ -180,12 +181,18 @@ class MT5Service:
                 # fallback to numeric pump_mode already set
                 pump = self.pump_mode
 
-            if not MT5Service._shared_manager.Connect(self.address, int(self.login), str(self.password), pump, int(self.timeout)):
+            # Try to connect with login as is, if it's int, use int, else use as string
+            try:
+                login_val = int(self.login)
+            except ValueError:
+                login_val = self.login
+
+            if not MT5Service._shared_manager.Connect(self.address, login_val, str(self.password), pump, int(self.timeout)):
                 # try one more time with numeric fallback 1
                 last = MT5Manager.LastError()
                 try:
                     if pump != 1:
-                        if MT5Service._shared_manager.Connect(self.address, int(self.login), str(self.password), 1, int(self.timeout)):
+                        if MT5Service._shared_manager.Connect(self.address, login_val, str(self.password), 1, int(self.timeout)):
                             MT5Service._shared_manager.connected = True
                             return MT5Service._shared_manager
                 except Exception:
@@ -647,59 +654,117 @@ def reset_mt5_instance(server_id=None):
     Reset the global MT5Service instance to reload credentials from DB or a specific server_id.
     Call this after updating server settings.
     """
+    print(f"reset_mt5_instance called with server_id={server_id}")
     global _mt5_instance, _current_server_setting
-    with _mt5_lock:
-        # Disconnect existing instance
-        if _mt5_instance:
+    if _mt5_lock.acquire(blocking=False):
+        try:
+            print("Entered _mt5_lock")
+            # 1️⃣ Disconnect existing instance
+            if _mt5_instance:
+                try:
+                    if hasattr(_mt5_instance, 'manager') and _mt5_instance.manager:
+                        _mt5_instance.manager = None
+                    logger.info("Previous MT5Service instance disconnected successfully")
+                except Exception as e:
+                    logger.warning(f"Error disconnecting previous MT5Service instance: {e}")
+
+            # Clean up old MT5 instance directories
             try:
-                if hasattr(_mt5_instance, 'manager') and _mt5_instance.manager:
-                    # MT5Service might not have explicit disconnect
-                    _mt5_instance.manager = None
-                logger.info("Previous MT5Service instance disconnected successfully")
+                import shutil
+                base = os.path.join(os.getcwd(), 'mt5_instances')
+                if os.path.exists(base):
+                    # On Windows, files might be locked by previous MT5 processes
+                    # Try to remove files individually to handle locked files gracefully
+                    for root, dirs, files in os.walk(base, topdown=False):
+                        for name in files:
+                            try:
+                                os.remove(os.path.join(root, name))
+                            except OSError:
+                                # File is locked, skip it
+                                pass
+                        for name in dirs:
+                            try:
+                                os.rmdir(os.path.join(root, name))
+                            except OSError:
+                                # Directory not empty or locked, skip it
+                                pass
+                    # Try to remove the base directory if empty
+                    try:
+                        os.rmdir(base)
+                        print("Cleaned up old MT5 instance directories")
+                    except OSError:
+                        print("Some MT5 instance files could not be cleaned up (in use by another process)")
             except Exception as e:
-                logger.warning(f"Error disconnecting previous MT5Service instance: {e}")
+                logger.warning(f"Error cleaning up MT5 instance directories: {e}")
 
-        # Load new server settings from DB
-        try:
-            if server_id:
-                from core.models import ServerSetting
-                server_setting = ServerSetting.objects.get(id=server_id)
-            else:
-                from core.models import ServerSetting
-                server_setting = ServerSetting.objects.latest('created_at')
-            _current_server_setting = server_setting
-        except Exception as e:
-            logger.error("No ServerSetting found to initialize MT5Service")
+            # Reset shared manager
+            MT5Service._shared_manager = None
             _mt5_instance = None
-            return None
 
-        # Initialize MT5Service with DB credentials
-        host = server_setting.server_ip.split(':')[0]
-        port = int(server_setting.server_ip.split(':')[1]) if ':' in server_setting.server_ip else 443
-        login = int(server_setting.real_account_login)
-        password = server_setting.real_account_password
+            # 2️⃣ Load server settings from DB
+            print("About to load server settings")
+            try:
+                from core.models import ServerSetting
+                if server_id:
+                    server_setting = ServerSetting.objects.get(id=server_id)
+                else:
+                    server_setting = ServerSetting.objects.latest('created_at')
+                _current_server_setting = server_setting
+                print(f"Loaded server: {server_setting.id}")
+            except Exception as e:
+                logger.error("No ServerSetting found to initialize MT5Service")
+                return None
 
-        try:
-            _mt5_instance = MT5Service(host=host, port=port, login=login, password=password)
-            _mt5_instance.connect()
-            logger.info(f"MT5Service connected: {host}:{port}, login={login}")
-        except Exception as e:
-            _mt5_instance = None
-            logger.error(f"Failed to connect MT5Service: {e}")
-            cache.set('mt5_manager_error', str(e))
+            # Extract host, port, login, password
+            host = server_setting.server_ip.split(':')[0]
+            port = int(server_setting.server_ip.split(':')[1]) if ':' in server_setting.server_ip else 443
+            try:
+                login = int(server_setting.real_account_login)
+            except ValueError:
+                logger.error(f"Invalid MT5 login '{server_setting.real_account_login}', must be numeric")
+                cache.set('mt5_manager_error', f"Invalid MT5 login: {server_setting.real_account_login}")
+                return None
+            password = server_setting.real_account_password
 
-        # Clear cached MT5 groups
-        try:
-            from core.models import MT5GroupConfig
-            MT5GroupConfig.objects.all().update(is_enabled=False, last_sync=None)
-            cache.delete('mt5_groups_sync')
-            cache.delete('mt5_connection_status')
-            logger.info("Cleared cached MT5 trading groups")
-        except Exception as e:
-            logger.warning(f"Error clearing MT5 groups cache: {e}")
+            # 3️⃣ ✅ Create new MT5Service instance and connect here
+            print("About to create MT5Service instance")
+            try:
+                _mt5_instance = MT5Service(host=host, port=port, login=login, password=password, timeout=5000)
+                print("About to call connect")
+                _mt5_instance.connect()
+                print("Connect completed")
 
-        return _mt5_instance
+                # ✅ Check if connection succeeded
+                if _mt5_instance and getattr(_mt5_instance, 'manager', None):
+                    logger.info("MT5Service successfully connected")
+                else:
+                    logger.error("MT5Service failed to connect after reset")
 
+                logger.info(f"MT5Service connected: {host}:{port}, login={login}")
+            except Exception as e:
+                _mt5_instance = None
+                logger.error(f"Failed to connect MT5Service: {e}")
+                cache.set('mt5_manager_error', str(e))
+                print(f"Exception in connect: {e}")
+
+            # 4️⃣ Clear cached MT5 groups
+            print("About to clear cache")
+            try:
+                from core.models import MT5GroupConfig
+                MT5GroupConfig.objects.all().update(is_enabled=False, last_sync=None)
+                cache.delete('mt5_groups_sync')
+                cache.delete('mt5_connection_status')
+                logger.info("Cleared cached MT5 trading groups")
+            except Exception as e:
+                logger.warning(f"Error clearing MT5 groups cache: {e}")
+
+            print("reset_mt5_instance returning")
+            return _mt5_instance
+        finally:
+            _mt5_lock.release()
+    else:
+        print("Could not acquire _mt5_lock, another operation in progress")
+        return None
 
 def force_refresh_trading_groups():
     """
@@ -720,11 +785,16 @@ def force_refresh_trading_groups():
             logger.info("Trading groups refreshed from MT5")
             return True
         else:
-            logger.error("Failed to sync trading groups from MT5")
+            logger.warning("Failed to sync trading groups from MT5 - this may be due to network connectivity issues")
             return False
     except Exception as e:
-        logger.error(f"Error refreshing trading groups: {e}")
-        return False
+        # Check if it's a network error
+        if "MT_RET_ERR_NETWORK" in str(e) or "Network error" in str(e):
+            logger.warning(f"Network error during group sync: {e} - server change completed but groups not synced")
+            return False
+        else:
+            logger.error(f"Error refreshing trading groups: {e}")
+            return False
 
 
 if __name__ == '__main__':
